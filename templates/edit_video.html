@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Video</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        form {
+            background-color: #fff;
+            padding: 25px 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            margin: 0 auto;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+            color: #444;
+        }
+
+        input[type="text"],
+        input[type="date"],
+        input[type="file"],
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        button {
+            margin-top: 20px;
+            width: 100%;
+            padding: 12px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Edit Video Details</h1>
+    <form action="{{ url_for('edit_video', video_id=video.id) }}" method="POST" enctype="multipart/form-data">
+        
+        <label>Subject:</label>
+        <input type="text" name="subject" value="{{ video.subject }}" required>
+
+
+        <label>Chapter:</label>
+        <input type="text" name="chapter" value="{{ video.chapter }}" required>
+
+        <label>Episode:</label>
+        <input type="text" name="episode" value="{{ video.episode }}" required>
+
+        <label>Date:</label>
+        <input type="date" name="date" value="{{ video.date }}" required>
+
+        <label>Status:</label>
+        <select name="status">
+            <option value="Pending" {% if video.status == 'Pending' %}selected{% endif %}>Pending</option>
+            <option value="Under Review" {% if video.status == 'Under Review' %}selected{% endif %}>Under Review</option>
+            <option value="Approved" {% if video.status == 'Approved' %}selected{% endif %}>Approved</option>
+            
+        </select>
+
+        <label>Upload File:</label>
+        <input type="file" name="file_upload">
+
+        <button type="submit">Update Video</button>
+    </form>
+</body>
+</html>
