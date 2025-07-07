@@ -1,0 +1,1456 @@
+{% extends "dashboard_base.html" %}
+{% block dashboard_content %}
+
+<!-- Flash Message Container -->
+<div class="flash-container"></div>
+
+<!-- Main Header -->
+<div class="handoff-header">
+  <h2><i class="fas fa-exchange-alt"></i> Editors Handoff Tracker</h2>
+  <div class="header-actions">
+    <button class="btn btn-primary" onclick="{% if current_user.role == 'operator_admin' %}showModal(){% else %}showPermissionError(){% endif %}">
+      <i class="fas fa-plus"></i> New Handoff
+    </button>
+    <button class="btn btn-secondary" onclick="{% if current_user.role == 'operator_admin' %}showUploadModal(){% else %}showPermissionError(){% endif %}">
+      <i class="fas fa-upload"></i> Bulk Upload
+    </button>
+  </div>
+</div>
+
+<!-- Editor Status Cards - Made smaller -->
+<div class="editor-cards-container">
+  {% for ed in editors %}
+  <div class="editor-card" 
+       onclick="showEditorModal(this)"
+       data-editor-id="{{ ed.id }}"
+       data-editor-name="{{ ed.name }}"
+       data-editor-avatar="{{ url_for('static', filename='profile_pics/' ~ ed.profile_picture) }}"
+       data-task-counts='{{ task_counts[ed.id] | tojson | safe }}'>
+    <div class="editor-info">
+      <img src="{{ url_for('static', filename='profile_pics/' ~ ed.profile_picture) }}" 
+           alt="{{ ed.name }}" class="editor-avatar">
+      <div class="editor-name">{{ ed.name }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Filters and Search -->
+<div class="filters-container">
+  <div class="filter-group">
+    <div class="custom-dropdown" id="editorDropdown">
+      <div class="selected"><i class="fas fa-user-edit"></i> All Editors</div>
+      <div class="options">
+        <div class="option"><i class="fas fa-list"></i> All Editors</div>
+        {% for editor in editors %}
+        <div class="option"><i class="fas fa-user"></i> {{ editor.name }}</div>
+        {% endfor %}
+      </div>
+    </div>
+    
+    <div class="custom-dropdown" id="progressDropdown">
+      <div class="selected"><i class="fas fa-tasks"></i> All Statuses</div>
+      <div class="options">
+        <div class="option"><i class="fas fa-list"></i> All Statuses</div>
+        <div class="option">🟡 Ongoing</div>
+        <div class="option">🟢 Finished</div>
+        <div class="option">🔴 Re-editing</div>
+        <div class="option">✅ Approved</div>
+      </div>
+    </div>
+
+    <div class="custom-dropdown" id="subjectDropdown">
+      <div class="selected"><i class="fas fa-book"></i> All Subjects</div>
+      <div class="options">
+        <div class="option"><i class="fas fa-list"></i> All Subjects</div>
+        {% for subject in subjects %}
+        <div class="option"><i class="fas fa-book"></i> {{ subject }}</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  
+  <div class="search-group">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" id="handoffSearch" placeholder="Search by subject or episode...">
+    </div>
+    <button class="btn btn-sort" id="sortSubjectBtn">
+      <i class="fas fa-sort-alpha-down"></i> Sort by Subject
+    </button>
+  </div>
+</div>
+
+<!-- Handoff Table with reordered columns -->
+<div class="table-responsive">
+  <div id="noDataMessage" class="no-data-message" style="display:none;">
+    <span class="no-data-emoji" role="img" aria-label="Thinking">🤔</span>
+    <span class="no-data-text">No handoffs found for the selected filters.</span>
+  </div>
+  <div style="overflow-x: auto;">
+    <table class="handoff-table">
+      <thead>
+        <tr>
+          <th>Subject</th>
+          <th>Episode</th>
+          <th>Chapter</th>
+          <th>Progress</th>
+          <th>Editor</th>
+          <th>Date Assigned</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="handoffTable">
+        {% for h in handoffs %}
+        <tr data-editor="{{ h.editor.name }}" data-progress="{{ h.progress }}">
+          <td>{{ h.subject }}</td>
+          <td>{{ h.episode }}</td>
+          <td>{{ h.chapter }}</td>
+          <td>
+            <select name="progress" class="form-select status-select" {% if current_user.role != 'operator_admin' %}disabled{% endif %}>
+              <option value="Ongoing" {% if h.progress == 'Ongoing' %}selected{% endif %}>
+                🟡 Ongoing
+              </option>
+              <option value="Finished" {% if h.progress == 'Finished' %}selected{% endif %}>
+                🟢 Finished
+              </option>
+              <option value="Re-editing" {% if h.progress == 'Re-editing' %}selected{% endif %}>
+                🔴 Re-editing
+              </option>
+              <option value="Approved" {% if h.progress == 'Approved' %}selected{% endif %}>
+                ✅ Approved
+              </option>
+            </select>
+          </td>
+          <td class="editor-cell">
+            <img src="{{ url_for('static', filename='profile_pics/' ~ h.editor.profile_picture) }}" 
+                 alt="{{ h.editor.name }}" class="editor-avatar-sm">
+            <select name="editor_id" class="form-select" {% if current_user.role != 'operator_admin' %}disabled{% endif %}>
+              {% for ed in editors %}
+              <option value="{{ ed.id }}" {% if ed.id == h.editor.id %}selected{% endif %}>{{ ed.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td>
+            {% if h.date_assigned %}
+              {{ h.date_assigned.strftime('%Y-%m-%d') if h.date_assigned.__class__.__name__ != 'str' else h.date_assigned }}
+            {% else %}
+              ''
+            {% endif %}
+          </td>
+          <td>
+            {% if current_user.role == 'operator_admin' %}
+            <form method="POST" action="{{ url_for('update_handoff', handoff_id=h.id) }}" onsubmit="return syncFormData(this)">
+              <input type="hidden" name="editor_id">
+              <input type="hidden" name="progress">
+              <button type="submit" class="btn btn-update">
+                <i class="fas fa-save"></i> Update
+              </button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Table Status and Pagination -->
+<div class="table-footer">
+  <div class="table-status" id="handoffStatus">
+    Showing <span id="shownCount">0</span> of <span id="totalCount">0</span> entries
+  </div>
+  
+  <div class="pagination-controls">
+    <select id="rowsPerPage" class="form-select" onchange="changeRowsPerPage(this.value)">
+      <option value="10">10 rows</option>
+      <option value="20">20 rows</option>
+      <option value="50">50 rows</option>
+      <option value="100">100 rows</option>
+    </select>
+    
+    <button class="btn btn-pagination" onclick="prevPage()" id="prevBtn">
+      <i class="fas fa-chevron-left"></i> Previous
+    </button>
+    <span class="page-info" id="pageInfo">Page 1 of 1</span>
+    <button class="btn btn-pagination" onclick="nextPage()" id="nextBtn">
+      Next <i class="fas fa-chevron-right"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Modals -->
+<div id="addModal" class="modal" onclick="hideModal()">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <span class="close" onclick="hideModal()">&times;</span>
+    <h3><i class="fas fa-plus-circle"></i> New Handoff</h3>
+    <form method="POST" action="{{ url_for('add_handoff') }}">
+      <div class="form-group">
+        <label><i class="fas fa-book"></i> Subject</label>
+        <input type="text" name="subject" placeholder="Enter subject" required>
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-film"></i> Episode</label>
+        <input type="text" name="episode" placeholder="Enter episode" required>
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-file-alt"></i> Chapter</label>
+        <input type="text" name="chapter" placeholder="Enter chapter" required>
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-tasks"></i> Status</label>
+        <select name="progress" required>
+          <option value="Ongoing">🟡 Ongoing</option>
+          <option value="Finished">🟢 Finished</option>
+          <option value="Re-editing">🔴 Re-editing</option>
+          <option value="Approved">✅ Approved</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-user-edit"></i> Editor</label>
+        <select name="editor_id" required>
+          <option value="" disabled selected>Select Editor</option>
+          {% for ed in editors %}
+          <option value="{{ ed.id }}">{{ ed.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-submit">
+        <i class="fas fa-paper-plane"></i> Submit
+      </button>
+    </form>
+  </div>
+</div>
+
+<div id="uploadModal" class="modal" onclick="hideUploadModal()">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <span class="close" onclick="hideUploadModal()">&times;</span>
+    <h3><i class="fas fa-file-excel"></i> Bulk Upload</h3>
+    <form method="POST" action="{{ url_for('bulk_upload_handoffs') }}" enctype="multipart/form-data">
+      <div class="form-group">
+        <label><i class="fas fa-file-upload"></i> Select Excel File</label>
+        <div class="file-upload">
+          <input type="file" name="excel_file" accept=".xlsx,.xls" required>
+          <span class="file-info">No file selected</span>
+          <button type="button" class="btn btn-choose">
+            <i class="fas fa-folder-open"></i> Choose File
+          </button>
+        </div>
+        <small class="file-hint">Only .xlsx or .xls files accepted</small>
+      </div>
+      <button type="submit" class="btn btn-submit">
+        <i class="fas fa-upload"></i> Upload
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Editor Details Modal -->
+<div id="editorModal" class="modal" onclick="hideEditorModal()">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <span class="close" onclick="hideEditorModal()">&times;</span>
+    <div id="editorModalContent">
+      <!-- Content will be injected by JavaScript -->
+    </div>
+  </div>
+</div>
+
+<!-- Single Success Notification -->
+<div id="successToast" class="toast">
+  <div class="toast-icon">
+    <i class="fas fa-check-circle"></i>
+  </div>
+  <div class="toast-content">
+    <div class="toast-title">Success</div>
+    <div class="toast-message">Update successful</div>
+  </div>
+</div>
+
+<!-- CSS Styles -->
+<style>
+:root {
+  --primary-color: #37b3ba;
+  --primary-dark: #2d8c91;
+  --primary-light: #58bfc3;
+  --secondary-color: #f8f9fa;
+  --text-color: #333;
+  --text-light: #777;
+  --border-color: #e0e0e0;
+  --success-color: #4caf50;
+  --warning-color: #ffc107;
+  --danger-color: #f44336;
+  --info-color: #2196f3;
+}
+
+/* Base Styles */
+.handoff-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 0 1rem;
+}
+
+.handoff-header h2 {
+  color: var(--primary-dark);
+  font-size: 1.8rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+/* Editor Cards - Made smaller */
+.editor-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding: 0 1rem;
+}
+
+.editor-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  border: 1px solid var(--border-color);
+}
+
+.editor-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.editor-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.editor-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--primary-color);
+}
+
+.editor-name {
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.download-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  margin-top: 0.5rem;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 1200;
+  padding: 0.5rem;
+  display: none;
+}
+
+.status-btn {
+  width: 100%;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.status-btn:hover {
+  opacity: 0.9;
+  transform: translateX(3px);
+}
+
+.status-red {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.status-yellow {
+  background-color: #fff8e1;
+  color: #f57f17;
+}
+
+.status-green {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-blue {
+  background-color: #e3f2fd;
+  color: #1e88e5;
+}
+
+/* Filters */
+.filters-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 0 1rem;
+}
+
+.filter-group, .search-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.custom-dropdown {
+  position: relative;
+  min-width: 180px;
+}
+
+.custom-dropdown .selected {
+  background: white;
+  border: 1px solid var(--border-color);
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.custom-dropdown .selected:hover {
+  border-color: var(--primary-color);
+}
+
+.custom-dropdown .options {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  display: none;
+  z-index: 5;
+  max-height: 300px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.custom-dropdown.active .options {
+  display: block;
+}
+
+.custom-dropdown .option {
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.custom-dropdown .option:hover {
+  background-color: var(--secondary-color);
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-box i {
+  position: absolute;
+  left: 1rem;
+  color: var(--text-light);
+}
+
+.search-box input {
+  padding: 0.6rem 1rem 0.6rem 2.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  width: 250px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.search-box input:focus {
+  border-color: var(--primary-color);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(55, 179, 186, 0.2);
+}
+
+/* Buttons */
+.btn {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+  transform: translateY(-2px);
+}
+
+.btn-sort {
+  background-color: white;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+.btn-sort:hover {
+  background-color: var(--secondary-color);
+  border-color: var(--primary-color);
+  color: var(--primary-dark);
+}
+
+.btn-update {
+  background-color: var(--primary-light);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.btn-update:hover {
+  background-color: var(--primary-color);
+}
+
+.btn-pagination {
+  background-color: white;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  padding: 0.5rem 1rem;
+}
+
+.btn-pagination:hover {
+  background-color: var(--secondary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-pagination:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-submit {
+  width: 100%;
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.8rem;
+  font-size: 1rem;
+  margin-top: 1rem;
+}
+
+.btn-submit:hover {
+  background-color: var(--primary-dark);
+}
+
+.btn-choose {
+  background-color: #e9ecef;
+  color: var(--text-color);
+  padding: 0.5rem 1rem;
+}
+
+/* Table Styles */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  padding: 0 1rem;
+}
+
+.handoff-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.handoff-table th {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+}
+
+.handoff-table td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.handoff-table tr:last-child td {
+  border-bottom: none;
+}
+
+.handoff-table tr:hover td {
+  background-color: rgba(55, 179, 186, 0.05);
+}
+
+.editor-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.editor-avatar-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border-color);
+}
+
+.form-select {
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  border: 1px solid transparent;
+  background-color: transparent;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg fill='%23333' height='16' viewBox='0 0 24 24' width='16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+}
+
+.form-select:hover, .form-select:focus {
+  border-color: var(--border-color);
+  background-color: white;
+  outline: none;
+}
+
+.status-select option {
+  padding: 0.5rem;
+}
+
+/* Table Footer */
+.table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding: 0 1rem;
+}
+
+.table-status {
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
+.table-status span {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.page-info {
+  font-size: 0.9rem;
+  color: var(--text-light);
+  min-width: 80px;
+  text-align: center;
+}
+
+/* Modal Styles */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  position: relative;
+  animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modal h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: var(--primary-dark);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modal .close {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  color: var(--text-light);
+  transition: all 0.2s ease;
+}
+
+.modal .close:hover {
+  color: var(--text-color);
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: var(--primary-color);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(55, 179, 186, 0.2);
+}
+
+.file-upload {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.file-upload input[type="file"] {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.file-info {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px dashed var(--border-color);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: var(--text-light);
+}
+
+.file-hint {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-light);
+}
+
+/* Toast Notification */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  z-index: 1100;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.toast-icon {
+  font-size: 1.5rem;
+  color: var(--success-color);
+}
+
+.toast-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.toast-title {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.toast-message {
+  font-size: 0.9rem;
+  color: var(--text-light);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 992px) {
+  .filters-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filter-group, .search-group {
+    flex-wrap: wrap;
+  }
+  
+  .search-box input {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .handoff-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .editor-cards-container {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+  
+  .table-footer {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .pagination-controls {
+    justify-content: center;
+  }
+
+  /* Mobile table view: hide non-essential columns */
+  .handoff-table th:nth-child(3), /* Chapter */
+  .handoff-table td:nth-child(3),
+  .handoff-table th:nth-child(4), /* Progress */
+  .handoff-table td:nth-child(4),
+  .handoff-table th:nth-child(6), /* Date Assigned */
+  .handoff-table td:nth-child(6),
+  .handoff-table th:nth-child(7), /* Actions */
+  .handoff-table td:nth-child(7) {
+    display: none;
+  }
+
+  /* In editor column, show only avatar on mobile */
+  .editor-cell .form-select {
+    display: none;
+  }
+}
+
+@media (max-width: 576px) {
+  .modal-content {
+    padding: 1.5rem;
+    margin: 0 1rem;
+  }
+  
+  .editor-cards-container {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem;
+  }
+
+  .editor-card {
+    padding: 0.75rem;
+  }
+  
+  .editor-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .editor-name {
+    font-size: 0.85rem;
+  }
+  
+  .handoff-table td, .handoff-table th {
+    padding: 0.6rem;
+  }
+}
+
+.no-data-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: #888;
+  font-size: 0.98rem;
+  margin: 0.5rem 0 0.5rem 0;
+  background: none;
+  box-shadow: none;
+  min-height: unset;
+  border-radius: 0;
+}
+.no-data-emoji {
+  font-size: 1.2rem;
+  display: inline-block;
+  animation: look-around 1.2s infinite alternate;
+}
+@keyframes look-around {
+  0% { transform: translateX(0) rotate(-10deg); }
+  30% { transform: translateX(4px) rotate(10deg); }
+  60% { transform: translateX(-4px) rotate(-10deg); }
+  100% { transform: translateX(0) rotate(0deg); }
+}
+.no-data-text {
+  font-weight: 400;
+  color: #e74c3c;
+}
+
+/* Editor Modal Styles */
+#editorModalContent {
+  text-align: center;
+}
+.editor-modal-header {
+  margin-bottom: 1.5rem;
+}
+.editor-avatar-large {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--primary-color);
+  margin-bottom: 1rem;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+#editorModalContent h3 {
+  font-size: 1.5rem;
+  color: var(--primary-dark);
+  margin: 0;
+}
+.editor-modal-body {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.editor-modal-body form {
+  width: 100%;
+  max-width: 300px;
+}
+.editor-modal-body .status-btn {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+  padding: 0.8rem;
+  justify-content: center;
+  border-radius: 50px;
+  font-weight: 500;
+  transition: all 0.25s ease-out;
+}
+.editor-modal-body .status-btn:hover,
+.editor-modal-body .status-btn:focus,
+.editor-modal-body .status-btn:active {
+  transform: scale(1.04) translateY(-2px);
+  background-color: #fdfdfd;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  color: var(--text-color);
+  outline: none;
+}
+.editor-modal-body .status-btn:last-child {
+  margin-bottom: 0;
+}
+
+/* Flash Message Styling */
+.flash-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 350px;
+}
+
+.flash-message {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 8px;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.flash-message.flash-success {
+    background-color: #28a745;
+}
+
+.flash-message.flash-danger {
+    background-color: #dc3545;
+}
+
+.flash-icon {
+    font-size: 1.25rem;
+    margin-right: 1rem;
+}
+
+.flash-text {
+    flex-grow: 1;
+    font-weight: 500;
+}
+
+.flash-close {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 1.25rem;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.flash-close:hover {
+    opacity: 1;
+}
+</style>
+
+<script>
+// ─── Global Variables ────────────────────────────────────────────────────────
+let currentPage = 1;
+let rowsPerPage = 10;
+let allHandoffRows = [];
+let filteredHandoffRows = [];
+let searchTerm = '';
+let sortMode = '';
+let sortDirection = 1;
+
+// ─── DOM Ready ──────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  initializeDropdowns();
+  initializeSearch();
+  initializeSortButton();
+  initializeFileUpload();
+  updateTable();
+  
+  // Set initial rows per page
+  document.getElementById('rowsPerPage').value = rowsPerPage;
+});
+
+// ─── Initialize Dropdowns ───────────────────────────────────────────────────
+function initializeDropdowns() {
+  const dropdowns = [
+    { id: 'editorDropdown' },
+    { id: 'progressDropdown' },
+    { id: 'subjectDropdown' }
+  ].map(cfg => {
+    const dd = document.getElementById(cfg.id);
+    return {
+      dd,
+      selected: dd.querySelector('.selected'),
+      options: Array.from(dd.querySelectorAll('.option'))
+    };
+  });
+
+  dropdowns.forEach(({ dd, selected, options }) => {
+    selected.addEventListener('click', () => dd.classList.toggle('active'));
+    options.forEach(opt => {
+      opt.addEventListener('click', () => {
+        selected.innerHTML = opt.innerHTML;
+        dd.classList.remove('active');
+        updateTable();
+      });
+    });
+  });
+
+  document.addEventListener('click', e => {
+    dropdowns.forEach(({ dd }) => {
+      if (!dd.contains(e.target)) dd.classList.remove('active');
+    });
+  });
+}
+
+// ─── Initialize Search ──────────────────────────────────────────────────────
+function initializeSearch() {
+  const searchInput = document.getElementById('handoffSearch');
+  if (searchInput) {
+    let searchTimeout;
+    searchInput.addEventListener('input', function() {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        searchTerm = this.value.trim().toLowerCase();
+        updateTable();
+      }, 300);
+    });
+  }
+}
+
+// ─── Initialize Sort Button ─────────────────────────────────────────────────
+function initializeSortButton() {
+  document.getElementById('sortSubjectBtn').addEventListener('click', function() {
+    if (sortMode === 'subject') {
+      sortDirection *= -1;
+      this.querySelector('i').className = sortDirection === 1 ? 
+        'fas fa-sort-alpha-down' : 'fas fa-sort-alpha-up';
+    } else {
+      sortMode = 'subject';
+      sortDirection = 1;
+      this.querySelector('i').className = 'fas fa-sort-alpha-down';
+    }
+    updateTable();
+  });
+}
+
+// ─── Initialize File Upload ─────────────────────────────────────────────────
+function initializeFileUpload() {
+  const fileInputs = document.querySelectorAll('input[type="file"]');
+  fileInputs.forEach(input => {
+    input.addEventListener('change', function() {
+      const fileInfo = this.closest('.file-upload').querySelector('.file-info');
+      if (this.files.length > 0) {
+        fileInfo.textContent = this.files[0].name;
+        fileInfo.style.color = 'var(--text-color)';
+      } else {
+        fileInfo.textContent = 'No file selected';
+        fileInfo.style.color = 'var(--text-light)';
+      }
+    });
+  });
+}
+
+// ─── Update Table ───────────────────────────────────────────────────────────
+function updateTable() {
+  const editorVal = document.querySelector('#editorDropdown .selected').textContent.replace(/^[^a-zA-Z]+/, '').trim();
+  const progressVal = document.querySelector('#progressDropdown .selected').textContent.replace(/^[^a-zA-Z]+/, '').trim();
+  const subjectVal = document.querySelector('#subjectDropdown .selected').textContent.replace(/^[^a-zA-Z]+/, '').trim();
+
+  allHandoffRows = Array.from(document.querySelectorAll('#handoffTable tr'));
+  filteredHandoffRows = [];
+
+  allHandoffRows.forEach(row => {
+    const e = row.dataset.editor;
+    const p = (row.dataset.progress || '').replace(/^[^a-zA-Z]+/, '');
+    const subject = row.querySelector('td:first-child')?.textContent?.trim();
+    
+    // Search logic
+    let matchesSearch = true;
+    if (searchTerm) {
+      const cells = row.querySelectorAll('td');
+      const subject = cells[0]?.textContent?.toLowerCase() || '';
+      const episode = cells[1]?.textContent?.toLowerCase() || '';
+      matchesSearch = subject.includes(searchTerm) || episode.includes(searchTerm);
+    }
+    
+    const show = (editorVal === 'All Editors' || e === editorVal) &&
+                 (progressVal === 'All Statuses' || p === progressVal) &&
+                 (subjectVal === 'All Subjects' || subject === subjectVal) &&
+                 matchesSearch;
+    
+    if (show) filteredHandoffRows.push(row);
+    row.style.display = 'none';
+  });
+
+  // Sort logic - now properly sorts subjects
+  const autoSortStatuses = ['Re-editing', 'Ongoing', 'Finished', 'Approved'];
+  if (autoSortStatuses.includes(progressVal)) {
+    filteredHandoffRows.sort((a, b) => {
+      const aSubject = a.querySelector('td:first-child')?.textContent?.toLowerCase() || '';
+      const bSubject = b.querySelector('td:first-child')?.textContent?.toLowerCase() || '';
+      return aSubject.localeCompare(bSubject, undefined, { sensitivity: 'base' });
+    });
+  } else if (sortMode === 'subject') {
+    filteredHandoffRows.sort((a, b) => {
+      const aSubject = a.querySelector('td:first-child')?.textContent?.toLowerCase() || '';
+      const bSubject = b.querySelector('td:first-child')?.textContent?.toLowerCase() || '';
+      return sortDirection * aSubject.localeCompare(bSubject, undefined, { sensitivity: 'base' });
+    });
+  }
+
+  currentPage = 1;
+  paginateHandoffTable();
+}
+
+// ─── Paginate Table ─────────────────────────────────────────────────────────
+function paginateHandoffTable() {
+  const totalPages = Math.ceil(filteredHandoffRows.length / rowsPerPage);
+  const start = (currentPage - 1) * rowsPerPage;
+  const end = start + rowsPerPage;
+
+  allHandoffRows.forEach(row => row.style.display = "none");
+
+  let shownCount = 0;
+  filteredHandoffRows.forEach((row, index) => {
+    if (index >= start && index < end) {
+      row.style.display = "";
+      shownCount++;
+    }
+  });
+
+  // Update UI elements
+  document.getElementById("pageInfo").textContent = `Page ${currentPage} of ${totalPages || 1}`;
+  document.getElementById("shownCount").textContent = shownCount;
+  document.getElementById("totalCount").textContent = filteredHandoffRows.length;
+
+  // Show/hide no data message
+  const noDataDiv = document.getElementById("noDataMessage");
+  if (filteredHandoffRows.length === 0) {
+    noDataDiv.style.display = "flex";
+  } else {
+    noDataDiv.style.display = "none";
+  }
+
+  // Update pagination buttons
+  document.getElementById("prevBtn").disabled = currentPage <= 1;
+  document.getElementById("nextBtn").disabled = currentPage >= totalPages;
+}
+
+// ─── Change Rows Per Page ───────────────────────────────────────────────────
+function changeRowsPerPage(val) {
+  rowsPerPage = parseInt(val);
+  currentPage = 1;
+  paginateHandoffTable();
+}
+
+// ─── Pagination Controls ────────────────────────────────────────────────────
+function nextPage() {
+  const totalPages = Math.ceil(filteredHandoffRows.length / rowsPerPage);
+  if (currentPage < totalPages) {
+    currentPage++;
+    paginateHandoffTable();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+function prevPage() {
+  if (currentPage > 1) {
+    currentPage--;
+    paginateHandoffTable();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+// ─── Form Handling ──────────────────────────────────────────────────────────
+function syncFormData(form) {
+  const editorId = form.closest('tr').querySelector('select[name="editor_id"]').value;
+  const progress = form.closest('tr').querySelector('select[name="progress"]').value;
+  form.querySelector('input[name="editor_id"]').value = editorId;
+  form.querySelector('input[name="progress"]').value = progress;
+  
+  const formData = new FormData(form);
+  const action = form.action;
+  
+  const updateButton = form.querySelector('.btn-update');
+  const originalButtonHtml = updateButton.innerHTML;
+  updateButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Updating...`;
+  updateButton.disabled = true;
+
+  fetch(action, {
+    method: 'POST',
+    body: new URLSearchParams(formData),
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success || data.message) {
+      showFlashMessage(data.category || 'success', data.message);
+    } else if (data.error) {
+      showFlashMessage('danger', data.error);
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    showFlashMessage('danger', 'An unexpected error occurred. Please try again.');
+  })
+  .finally(() => {
+    updateButton.innerHTML = originalButtonHtml;
+    updateButton.disabled = false;
+  });
+
+  return false; // Prevent traditional form submission
+}
+
+function showFlashMessage(type, message) {
+    const container = document.querySelector('.flash-container') || createFlashContainer();
+    const alert = document.createElement('div');
+    alert.className = `flash-message flash-${type}`;
+    alert.innerHTML = `
+        <span class="flash-icon">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+        </span>
+        <span class="flash-text">${message}</span>
+        <button class="flash-close" onclick="this.parentElement.remove()">&times;</button>
+    `;
+    container.appendChild(alert);
+    setTimeout(() => {
+        alert.style.opacity = '0';
+        alert.addEventListener('transitionend', () => alert.remove());
+    }, 5000);
+}
+
+function createFlashContainer() {
+    const container = document.createElement('div');
+    container.className = 'flash-container';
+    document.body.appendChild(container);
+    return container;
+}
+
+function showPermissionError() {
+  showFlashMessage('danger', "You don't have permission to perform this action.");
+}
+
+// ─── Modal Controls ─────────────────────────────────────────────────────────
+function showModal() { 
+  document.getElementById('addModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function hideModal() { 
+  document.getElementById('addModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function showUploadModal() { 
+  document.getElementById('uploadModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function hideUploadModal() { 
+  document.getElementById('uploadModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// ─── Editor Modal ──────────────────────────────────────────────────────────
+function showEditorModal(cardElement) {
+  const editorId = cardElement.dataset.editorId;
+  const editorName = cardElement.dataset.editorName;
+  const editorAvatar = cardElement.dataset.editorAvatar;
+  const taskCounts = JSON.parse(cardElement.dataset.taskCounts);
+  
+  const modalContent = document.getElementById('editorModalContent');
+  
+  modalContent.innerHTML = `
+    <div class="editor-modal-header">
+      <img src="${editorAvatar}" alt="${editorName}" class="editor-avatar-large">
+      <h3>${editorName}'s Tasks</h3>
+    </div>
+    <div class="editor-modal-body">
+      <form action="/download_editor_tasks/${editorId}" method="get">
+        <input type="hidden" name="status" value="Re-editing">
+        <button type="submit" class="status-btn status-red" onclick="showToast('Download started for Re-editing tasks.', 'info')">
+          🔴 Re-editing (${taskCounts['Re-editing'] || 0})
+        </button>
+      </form>
+      <form action="/download_editor_tasks/${editorId}" method="get">
+        <input type="hidden" name="status" value="Ongoing">
+        <button type="submit" class="status-btn status-yellow" onclick="showToast('Download started for Ongoing tasks.', 'info')">
+          🟡 Ongoing (${taskCounts['Ongoing'] || 0})
+        </button>
+      </form>
+      <form action="/download_editor_tasks/${editorId}" method="get">
+        <input type="hidden" name="status" value="Finished">
+        <button type="submit" class="status-btn status-green" onclick="showToast('Download started for Finished tasks.', 'info')">
+          🟢 Finished (${taskCounts['Finished'] || 0})
+        </button>
+      </form>
+      <form action="/download_editor_tasks/${editorId}" method="get">
+        <input type="hidden" name="status" value="Approved">
+        <button type="submit" class="status-btn status-blue" onclick="showToast('Download started for Approved tasks.', 'info')">
+          ✅ Approved (${taskCounts['Approved'] || 0})
+        </button>
+      </form>
+    </div>
+  `;
+  
+  document.getElementById('editorModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function hideEditorModal() { 
+  document.getElementById('editorModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+</script>
+
+{% endblock %}

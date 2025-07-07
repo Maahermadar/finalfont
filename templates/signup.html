@@ -1,0 +1,54 @@
+<!-- templates/signup.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Sign Up Page</title>
+    <script src="{{ url_for('static', filename='vendors/tailwindcss.js') }}"></script>
+</head>
+<body class="flex items-center justify-center h-screen bg-gray-100">
+    <div class="flex w-3/4 max-w-4xl shadow-lg">
+        <!-- Left Section (Sign Up Form) -->
+        <div class="w-1/2 bg-white p-8 rounded-l-lg">
+            <h2 class="text-3xl font-semibold mb-6 text-[#37b3ba]">Sign Up</h2>
+            {% if error %}
+                <p class="text-red-500 mb-4">{{ error }}</p>
+            {% endif %}
+            <form method="POST" action="{{ url_for('signup') }}">
+                <label class="block text-gray-700 font-semibold mb-2">USERNAME</label>
+                <input name="username" type="text" placeholder="Username"
+                       class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#37b3ba]"/>
+
+                <label class="block text-gray-700 font-semibold mb-2">PASSWORD</label>
+                <input name="password" type="password" placeholder="Password"
+                       class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#37b3ba]"/>
+
+                <label class="block text-gray-700 font-semibold mb-2">ROLE</label>
+                <select name="role" class="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#37b3ba]">
+                    <option value="editor">Editor</option>
+                    <option value="supervisor">Supervisor</option>
+                </select>
+
+                <button class="w-full py-3 bg-gradient-to-r from-[#37b3ba] to-[#2e9f9d] text-white rounded-lg font-semibold mb-4">
+                    Sign Up
+                </button>
+
+                <p class="text-gray-500">Already have an account?
+                    <a href="{{ url_for('login') }}" class="text-[#37b3ba] font-semibold">Login</a>
+                </p>
+            </form>
+        </div>
+
+        <!-- Right Section (Welcome) -->
+        <div class="w-1/2 bg-gradient-to-r from-[#37b3ba] to-[#2e9f9d] text-white p-8 rounded-r-lg flex flex-col items-center justify-center">
+            <!-- Logo Section -->
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="mb-6 w-32 h-auto" />
+            <!-- Text Section -->
+            <h2 class="text-3xl font-semibold mb-6">Welcome!</h2>
+            <p class="mb-6">Join the platform and get started.</p>
+            <a href="{{ url_for('login') }}" class="py-3 px-6 bg-white text-[#37b3ba] rounded-lg font-semibold">Login</a>
+        </div>
+    </div>
+</body>
+</html>

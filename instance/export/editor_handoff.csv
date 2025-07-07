@@ -1,0 +1,60 @@
+id,subject,episode,editor_id,progress,date_assigned,chapter
+1,Physics,1,4,Re-editing,2025-04-23,ch1
+2,Physics,ep 10,1,Approved,2025-04-23,CH1
+6,Physics,Ep 06,1,Approved,2025-04-23,Ch1
+7,Physics,04,3,Re-editing,2025-04-24,ch1
+8,English,03,1,Finished,2025-04-24,ch1
+9,Math,Ep 01,4,Approved,2025-04-10,Ch1
+10,Math,Ep 02,4,Approved,2025-04-12,Ch1
+11,Math,Ep 04,2,Approved,2025-04-12,Ch1
+12,Math,Ep 05,3,Approved,3/22/2025 ,Ch1
+13,Math,Ep 06,2,Approved,2025-04-11,Ch1
+14,Math,Ep 07,2,Approved,4/5/2025,Ch1
+15,Math,13,4,Approved,2025-04-11,Ch2
+16,Physics,Ep 06,1,Approved,3/19/2025 ,Ch1
+17,Physics,Ep 05,1,Approved,3/23/2025,Ch1
+18,Physics,Ep 07,1,Approved,2025-04-11,Ch1
+19,Physics,Ep 08,1,Approved,4/10/2025 ,Ch1
+20,Physics,Ep 09,3,Approved,2025-04-11,Ch1
+21,Biology,01,4,Re-editing,2025-04-20,ch1
+22,Biology,02,4,Re-editing,2025-04-20,ch1
+23,English,04,1,Finished,2025-04-20,CH1
+24,Geography,03,2,Finished,2025-04-20,ch1
+25,Geography,04,2,Finished,2025-04-20,ch1
+26,Physics,04  P2,3,Re-editing,2025-04-20,ch1
+27,Physics,12,1,Approved,2025-04-20,ch2
+28,Math,16,3,Re-editing,2025-04-20,ch2
+29,Math,17,3,Re-editing,2025-04-20,ch2
+30,Physics,03,1,Approved,2025-04-15,Ch1
+31,Math,10,2,Approved,2025-04-19,Ch1
+32,Math,11,2,Approved,2025-04-19,Ch2
+33,Math,15,2,Re-editing,2025-04-18,Ch2
+34,Math,14,4,Re-editing,2025-04-20,Ch2
+35,Math,8,3,Re-editing,2025-04-20,ch1
+36,Math,9,3,Re-editing,2025-04-20,ch1
+37,Physics,2,4,Re-editing,2025-04-20,ch1
+38,Math,3,2,Re-editing,2025-04-27,Ch1
+39,Physics,13,1,Ongoing,2025-04-27,Ch2
+41,Math,18,3,Re-editing,2025-04-27,Ch2
+42,Math,19,3,Re-editing,2025-04-27,ch2
+43,Math,20,3,Finished,2025-04-27,Ch2
+44,Math,21,2,Ongoing,2025-04-27,
+45,Physics,23,2,Finished,2025-04-27,ch5
+46,Physics,22,1,Ongoing,2025-04-27,
+47,Physics,24,1,Ongoing,2025-04-27,
+48,Biology,3,4,Re-editing,2025-04-27,ch1
+49,Biology,4,4,Finished,2025-04-27,Ch1
+50,Physics,11,1,Ongoing,2025-04-28,Ch2
+51,Chemistry,17,4,Ongoing,2025-04-28,cch3
+52,Physics,19,3,Ongoing,2025-04-28,ch4
+53,Physics,20,3,Ongoing,2025-04-28,ch4
+54,Physics,16,1,Ongoing,2025-04-28,ch3
+55,Physics,17,1,Ongoing,2025-04-28,ch3
+56,Math,22,3,Ongoing,2025-04-28,ch3
+57,Math,23,3,Ongoing,2025-04-28,ch3
+58,Math,24,3,Ongoing,2025-04-28,ch4
+59,Physics,18,2,Ongoing,2025-04-28,ch4
+60,Math,25,2,Ongoing,2025-04-28,ch4
+61,Math,26,2,Ongoing,2025-04-28,ch4
+62,English,1,1,Ongoing,2025-04-28,Unit 1
+63,Chemistry,18,4,Ongoing,2025-04-28,ch3

@@ -1,0 +1,471 @@
+{% extends "dashboard_base.html" %}
+{% block dashboard_content %}
+
+<!-- Themed Header -->
+<div class="user-promo-header">
+    <div class="header-content">
+        <h1><i class="fas fa-clipboard-check icon-header"></i> Review Tracker</h1>
+        <p class="subtitle">Filter, track, and manage reviewed videos</p>
+    </div>
+    <div class="header-actions">
+        <button class="btn btn-secondary" onclick="resetFilters()">
+            <i class="fas fa-filter-circle-xmark"></i> Clear Filters
+        </button>
+    </div>
+</div>
+
+<div class="approval-container">
+    <!-- Filter and Search Section -->
+    <div class="filter-controls">
+        <div class="filter-group">
+            <label for="subjectFilter"><i class="fas fa-book"></i></label>
+            <select id="subjectFilter" class="form-control">
+                <option>All Subjects</option>
+                {% for subj in subjects %}<option>{{ subj }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="statusFilter"><i class="fas fa-circle-check"></i></label>
+            <select id="statusFilter" class="form-control">
+                <option>All Statuses</option>
+                {% for st in statuses %}<option>{{ st }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="tableSearch"><i class="fas fa-search"></i></label>
+            <input type="text" id="tableSearch" class="form-control" placeholder="Search reviews...">
+        </div>
+    </div>
+
+    <!-- Table Section -->
+    <div class="table-section">
+        <table id="videosTable">
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th>Chapter</th>
+                    <th>Episode</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Editor</th>
+                    <th>Supervisor</th>
+                </tr>
+            </thead>
+            <tbody id="videoTableBody"></tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-bar">
+        <div class="rows-per-page">
+            <label for="rowsPerPageSelect">Rows per page:</label>
+            <select id="rowsPerPageSelect" class="form-control">
+                <option value="10" selected>10</option>
+                <option value="20">20</option>
+                <option value="40">40</option>
+            </select>
+        </div>
+        <div class="pagination-controls">
+            <button onclick="prevPage()" class="btn btn-secondary">
+                &laquo; Previous
+            </button>
+            <span id="pageInfo">Page 1 of 1</span>
+            <button onclick="nextPage()" class="btn btn-secondary">
+                Next &raquo;
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Themed styles */
+:root {
+    --primary: #37b3ba;
+    --primary-dark: #2a8b91;
+    --primary-bg: rgba(55, 179, 186, 0.1);
+    --pending: #f59e0b; /* Amber */
+    --pending-dark: #d97706;
+    --pending-bg: rgba(245, 158, 11, 0.1);
+    --success: #16a34a; /* Green */
+    --success-dark: #15803d;
+    --success-bg: rgba(22, 163, 74, 0.1);
+    --light-gray: #f8f9fa;
+    --medium-gray: #6c757d;
+    --dark-gray: #343a40;
+    --border-color: #dee2e6;
+    --border-radius: 0.5rem;
+    --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.approval-container { 
+    padding: 1rem 2rem; 
+    background: white; 
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+}
+
+.user-promo-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 1.5rem 2rem; 
+    background: var(--primary); 
+    color: white; 
+    border-radius: 12px 12px 0 0; 
+}
+
+.user-promo-header h1 { 
+    font-size: 1.75rem; 
+    margin: 0; 
+    display: flex; 
+    align-items: center; 
+    gap: 0.75rem; 
+    color: white; 
+}
+
+.user-promo-header .subtitle { 
+    margin-top: 0.25rem; 
+    font-size: 0.95rem; 
+    color: rgba(255, 255, 255, 0.9); 
+}
+
+.header-actions { 
+    display: flex; 
+    gap: 0.75rem; 
+}
+
+.btn { 
+    padding: 0.6rem 1.2rem; 
+    border-radius: var(--border-radius); 
+    font-weight: 500; 
+    cursor: pointer; 
+    display: inline-flex; 
+    align-items: center; 
+    gap: 0.5rem; 
+    border: 1px solid transparent; 
+    text-decoration: none; 
+    transition: all 0.2s ease;
+}
+
+.btn-primary { 
+    background: white; 
+    color: var(--primary-dark); 
+    font-weight: 600; 
+}
+
+.btn-primary:hover { 
+    background: rgba(255, 255, 255, 0.9); 
+    transform: translateY(-1px); 
+}
+
+.btn-secondary { 
+    background: rgba(255, 255, 255, 0.2); 
+    color: white; 
+    border-color: rgba(255, 255, 255, 0.5); 
+}
+
+.btn-secondary:hover { 
+    background: rgba(255, 255, 255, 0.3); 
+}
+
+/* Filter Controls */
+.filter-controls { 
+    display: flex; 
+    gap: 1rem; 
+    margin: 1.5rem 0; 
+    padding: 1rem; 
+    background: var(--light-gray); 
+    border-radius: var(--border-radius); 
+}
+
+.filter-group { 
+    display: flex; 
+    align-items: center; 
+    flex-grow: 1; 
+}
+
+.filter-group label { 
+    padding: 0 0.75rem; 
+    color: var(--medium-gray); 
+}
+
+.form-control { 
+    width: 100%; 
+    padding: 0.75rem; 
+    border: 1px solid var(--border-color); 
+    border-radius: var(--border-radius); 
+    font-size: 1rem; 
+}
+
+.form-control:focus { 
+    outline: none; 
+    border-color: var(--primary); 
+    box-shadow: 0 0 0 3px rgba(55, 179, 186, 0.25); 
+}
+
+/* Table Styles */
+.table-section { 
+    overflow-x: auto; 
+    border: 1px solid var(--border-color); 
+    border-radius: var(--border-radius); 
+}
+
+table { 
+    width: 100%; 
+    border-collapse: collapse; 
+}
+
+table th, table td { 
+    padding: 0.85rem 1rem; 
+    border-bottom: 1px solid var(--border-color); 
+    text-align: left; 
+}
+
+table th { 
+    background: var(--primary); 
+    font-weight: 600; 
+    color: white; 
+    text-transform: uppercase; 
+    font-size: 0.85rem; 
+    letter-spacing: 0.5px; 
+}
+
+table tbody tr:hover { 
+    background-color: var(--light-gray); 
+}
+
+.pending-row { 
+    background-color: var(--pending-bg) !important; 
+}
+
+.pending-row:hover { 
+    background-color: rgba(245, 158, 11, 0.2) !important; 
+}
+
+.editor-cell, .supervisor-cell { 
+    display: flex; 
+    align-items: center; 
+    gap: 0.75rem; 
+}
+
+.avatar { 
+    width: 32px; 
+    height: 32px; 
+    border-radius: 50%; 
+    object-fit: cover; 
+}
+
+.action-icons { 
+    display: flex; 
+    gap: 0.75rem; 
+}
+
+.action-icons a { 
+    color: var(--medium-gray); 
+    transition: color 0.2s ease; 
+}
+
+.action-icons a:hover { 
+    color: var(--primary); 
+}
+
+/* Pagination */
+.pagination-bar { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    margin-top: 1.5rem; 
+    flex-wrap: wrap;
+    gap: 1rem; 
+}
+
+.pagination-controls { 
+    display: flex; 
+    align-items: center; 
+    gap: 1rem; 
+}
+
+.rows-per-page { 
+    display: flex; 
+    align-items: center; 
+    gap: 0.5rem; 
+}
+
+.rows-per-page select { 
+    width: auto; 
+    padding: 0.5rem; 
+}
+
+.status-badge { 
+    padding: 0.25rem 0.6rem; 
+    border-radius: 50px; 
+    font-size: 0.8rem; 
+    font-weight: 500; 
+    display: inline-flex; 
+    align-items: center; 
+    gap: 0.4rem; 
+}
+
+.status-pending { 
+    color: var(--pending-dark); 
+}
+
+.status-approved { 
+    color: var(--success); 
+}
+
+.status-under-review {
+    background-color: #e0f2fe;
+    color: #075985;
+}
+
+/* Loader Styles */
+.loader {
+    border: 12px solid #f3f3f3;
+    border-top: 12px solid var(--primary);
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    display: none;
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.cell-content-flex {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+</style>
+
+<!-- JavaScript -->
+<script id="initialData" type="application/json">{{ videos|tojson }}</script>
+<script>
+    window.addEventListener('load', () => {
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('review-section').style.display = 'block';
+    });
+
+    const allVideos = JSON.parse(document.getElementById('initialData').textContent);
+    let currentPage = 1;
+    let rowsPerPage = 10;
+    let filteredVideos = [...allVideos];
+
+    function renderTablePage(page) {
+        const tbody = document.getElementById('videoTableBody');
+        tbody.innerHTML = '';
+        const start = (page - 1) * rowsPerPage;
+        const end = start + rowsPerPage;
+        const current = filteredVideos.slice(start, end);
+        document.getElementById("pageInfo").innerText = `Page ${currentPage} of ${Math.ceil(filteredVideos.length / rowsPerPage)}`;
+
+        current.forEach(v => {
+            const tr = document.createElement('tr');
+            tr.className = (v.status.toLowerCase().trim() === 'pending') ? 'pending-row' : '';
+            
+            // Format status with appropriate icon
+            let statusHTML = '';
+            const status = v.status.toLowerCase().trim();
+            if (status === 'pending') {
+                statusHTML = `<span class="status-badge status-pending"><i class="fas fa-clock"></i> ${v.status}</span>`;
+            } else if (status === 'under review') {
+                statusHTML = `<span class="status-badge status-under-review"><i class="fas fa-magnifying-glass"></i> ${v.status}</span>`;
+            } else {
+                statusHTML = `<span class="status-badge status-approved"><i class="fas fa-check-circle"></i> ${v.status}</span>`;
+            }
+
+            // Create and append cells one by one for robustness
+            tr.insertCell().textContent = v.subject;
+            tr.insertCell().textContent = v.chapter || '-';
+            tr.insertCell().textContent = v.episode;
+            tr.insertCell().textContent = v.date;
+            tr.insertCell().innerHTML = statusHTML;
+
+            const editorCell = tr.insertCell();
+            if (v.editor && v.editor.name !== 'Unassigned') {
+                editorCell.innerHTML = `<div class="cell-content-flex"><img src="${v.editor.profile_picture}" class="avatar" alt="${v.editor.name}"> <span>${v.editor.name}</span></div>`;
+            } else {
+                editorCell.innerHTML = `<span>Unassigned</span>`;
+            }
+
+            const supervisorCell = tr.insertCell();
+            if (v.supervisor && v.supervisor.name !== 'Unassigned') {
+                supervisorCell.innerHTML = `<div class="cell-content-flex"><img src="${v.supervisor.profile_picture}" class="avatar" alt="${v.supervisor.name}"> <span>${v.supervisor.name}</span></div>`;
+            } else {
+                supervisorCell.innerHTML = `<span>Unassigned</span>`;
+            }
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    function filterTableRows() {
+        const searchInput = document.getElementById('tableSearch').value.toLowerCase();
+        const rows = document.querySelectorAll('#videoTableBody tr');
+        
+        rows.forEach(row => {
+            const textContent = row.textContent.toLowerCase();
+            row.style.display = textContent.includes(searchInput) ? '' : 'none';
+        });
+    }
+
+    document.getElementById('rowsPerPageSelect').addEventListener('change', function() {
+        rowsPerPage = parseInt(this.value);
+        currentPage = 1;
+        renderTablePage(currentPage);
+    });
+
+    function updateTable() {
+        const subj = document.getElementById('subjectFilter').value;
+        const stat = document.getElementById('statusFilter').value;
+        filteredVideos = allVideos.filter(v =>
+            (subj === 'All Subjects' || v.subject === subj) &&
+            (stat === 'All Statuses' || v.status === stat)
+        );
+        currentPage = 1;
+        renderTablePage(currentPage);
+    }
+
+    function resetFilters() {
+        document.getElementById('subjectFilter').value = 'All Subjects';
+        document.getElementById('statusFilter').value = 'All Statuses';
+        document.getElementById('tableSearch').value = '';
+        updateTable();
+        filterTableRows();
+    }
+
+    function prevPage() {
+        if (currentPage > 1) {
+            currentPage--;
+            renderTablePage(currentPage);
+        }
+    }
+
+    function nextPage() {
+        const maxPage = Math.ceil(filteredVideos.length / rowsPerPage);
+        if (currentPage < maxPage) {
+            currentPage++;
+            renderTablePage(currentPage);
+        }
+    }
+
+    // Event listeners
+    document.getElementById('subjectFilter').addEventListener('change', updateTable);
+    document.getElementById('statusFilter').addEventListener('change', updateTable);
+    document.getElementById('tableSearch').addEventListener('keyup', filterTableRows);
+
+    // Initial render
+    updateTable();
+</script>
+
+{% endblock %}

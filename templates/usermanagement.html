@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>User Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 30px;
+            background-color: #f4f8fb;
+            color: #333;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #007bff;
+        }
+
+        .admin-banner {
+            background: linear-gradient(to right, #007bff, #00c6ff);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+        }
+
+        .admin-banner i {
+            margin-right: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+
+        a.button {
+            padding: 6px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            color: white;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        a.button.edit {
+            background-color: #28a745;
+        }
+
+        a.button.delete {
+            background-color: #dc3545;
+        }
+
+        .logout-link {
+            margin-top: 30px;
+            display: inline-block;
+            padding: 10px 18px;
+            background-color: #ff5722;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        .logout-link:hover {
+            background-color: #e64a19;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="admin-banner">
+        <i class="fa fa-user-shield"></i>
+        Admin Privileges — You have access to manage users.
+    </div>
+
+    <h1>User Management</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+                <tr>
+                    <td>{{ users.username }}</td>
+                    <td>{{ users.email }}</td>
+                    <td>
+                        <a href="{{ url_for('edit_user', user_id=user.id) }}" class="button edit">Edit</a>
+                        <a href="{{ url_for('delete_user', user_id=user.id) }}" class="button delete"
+                           onclick="return confirm('Are you sure you want to delete this user?');">Delete</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <a href="{{ url_for('logout') }}" class="logout-link">
+        <i class="fa fa-sign-out-alt"></i> Logout
+    </a>
+
+</body>
+</html>

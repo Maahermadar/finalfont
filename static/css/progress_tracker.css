@@ -1,0 +1,60 @@
+/* Progress Details Modal Styles */
+.progress-section {
+    margin-bottom: 25px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.progress-section h3 {
+    margin: 0 0 15px 0;
+    color: #2c3e50;
+    font-size: 1.1rem;
+}
+
+.progress-stats {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    text-align: right;
+}
+
+#progress-details-modal .modal-content {
+    max-width: 600px;
+}
+
+#progress-details-modal .modal-header {
+    background-color: #37b3ba;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 12px 12px 0 0;
+}
+
+#progress-details-modal .modal-header h2 {
+    margin: 0;
+    font-size: 1.4rem;
+}
+
+#progress-details-modal .modal-body {
+    padding: 20px;
+}
+
+#progress-details-modal .progress-bar-container {
+    margin: 15px 0;
+}
+
+.view-more-link {
+    text-align: right;
+    margin-top: 10px;
+}
+
+.view-more-btn {
+    color: #37b3ba;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.view-more-btn:hover {
+    text-decoration: underline;
+} 

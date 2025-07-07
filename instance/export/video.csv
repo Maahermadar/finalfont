@@ -1,0 +1,41 @@
+id,subject,chapter,episode,status,date,file_path,editor_id
+14,Physics,CH1,ep 10,Approved,2025-04-10,jiilka_5aad_blue_logo.pdf,1
+15,Math,Ch1,Ep 01,Approved,2025-04-10,,4
+18,Math,Ch1,Ep 02,Approved,2025-04-12,,4
+19,Math,Ch1,Ep 04,Approved,2025-04-12,,2
+20,Math,Ch1,Ep 05,Approved,3/22/2025 ,,3
+21,Math,Ch1,Ep 06,Approved,2025-04-11,,2
+22,Math,Ch1,Ep 07,Approved,4/5/2025,,2
+23,Math,Ch2,13,Approved,2025-04-11,,4
+24,Physics,Ch1,Ep 06,Approved,2025-04-25,,1
+25,Physics,Ch1,Ep 05,Approved,3/23/2025,,1
+26,Physics,Ch1,Ep 07,Approved,2025-04-11,,1
+27,Physics,Ch1,Ep 08,Approved,4/10/2025 ,,1
+28,Physics,Ch1,Ep 09,Approved,2025-04-11,,1
+29,Biology,ch1,01,Pending,2025-04-20,,4
+30,Biology,ch1,02,Pending,2025-04-20,,4
+32,English,CH1,04,Under Review,2025-04-20,Math_approved_4.xlsx,1
+33,Geography,ch1,03,Under Review,2025-04-20,,2
+34,Geography,ch1,04,Under Review,2025-04-20,,2
+38,Physics,ch1,04  P2,Pending,2025-04-20,,3
+39,Physics,ch2,12,Approved,2025-04-20,,1
+40,Math,ch2,16,Pending,2025-04-20,,3
+41,Math,ch2,17,Pending,2025-04-20,,3
+42,Physics,Ch1,03,Approved,2025-04-15,,1
+43,Math,Ch1,10,Approved,2025-04-19,,2
+44,Math,Ch2,11,Approved,2025-04-19,,2
+45,Math,Ch2,15,Pending,2025-04-18,,2
+46,Math,Ch2,14,Pending,2025-04-20,,4
+47,Math,ch1,8,Pending,2025-04-20,,3
+48,Math,ch1,9,Pending,2025-04-20,,3
+49,Physics,ch1,1,Pending,2025-04-20,,4
+50,Physics,ch1,2,Pending,2025-04-20,,4
+51,Physics,ch1,04,Pending,2025-04-25,,3
+52,English,ch1,03,Under Review,2025-04-25,,1
+53,Math,Ch1,3,Pending,2025-04-27,,2
+54,Math,Ch2,18,Pending,2025-04-27,,3
+55,Math,ch2,19,Pending,2025-04-27,,3
+56,Math,Ch2,20,Under Review,2025-04-27,,3
+57,Biology,ch1,3,Pending,2025-04-27,,4
+58,Biology,Ch1,4,Under Review,2025-04-27,,4
+59,Physics,ch5,23,Under Review,2025-04-28,,2

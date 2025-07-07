@@ -1,0 +1,156 @@
+{% extends "dashboard_base.html" %}
+{% block dashboard_content %}
+<style>
+    .review-container {
+        padding: 25px;
+        background: #f8fafc;
+        border-radius: 12px;
+    }
+    .video-header {
+        margin-bottom: 20px;
+    }
+    .video-header h2 {
+        font-size: 1.8rem;
+        color: #2d3748;
+        font-weight: 600;
+    }
+    .video-header p {
+        color: #718096;
+    }
+    .comment-form-container, .comments-table-container {
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        padding: 20px;
+        margin-top: 20px;
+        border: 1px solid #e2e8f0;
+    }
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 3fr 1fr;
+        gap: 15px;
+        align-items: flex-end;
+    }
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+    .form-group label {
+        margin-bottom: 5px;
+        font-size: 0.9rem;
+        color: #374151;
+        font-weight: 500;
+    }
+    .form-group input, .form-group textarea {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        font-size: 0.97rem;
+    }
+    .comments-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+    .comments-table th, .comments-table td {
+        padding: 12px 15px;
+        border: 1px solid #e2e8f0;
+        text-align: left;
+    }
+    .comments-table th {
+        background: #f1f5f9;
+        font-weight: 600;
+    }
+    .comment-photo {
+        max-width: 150px;
+        max-height: 100px;
+        border-radius: 6px;
+    }
+</style>
+
+<div class="review-container">
+    <div class="video-header">
+        <h2>Reviewing: {{ video.subject }} - {{ video.episode }}</h2>
+        <p>File: {{ video.file_path | basename }}</p>
+    </div>
+
+    <!-- Add Comment Form -->
+    <div class="comment-form-container">
+        <h3>Add New Comment</h3>
+        <form method="POST" action="{{ url_for('add_timestamp_comment', video_id=video.id) }}" enctype="multipart/form-data">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="minutes">Minutes</label>
+                    <input type="number" name="minutes" id="minutes" required>
+                </div>
+                <div class="form-group">
+                    <label for="seconds">Seconds</label>
+                    <input type="number" name="seconds" id="seconds" required>
+                </div>
+                <div class="form-group">
+                    <label for="comment">Comment</label>
+                    <textarea name="comment" id="comment" rows="2" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="photo">Upload Photo (optional)</label>
+                    <input type="file" name="photo" id="photo" accept="image/*">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top: 15px;">Add Comment</button>
+        </form>
+    </div>
+
+    <!-- Existing Comments Table -->
+    <div class="comments-table-container">
+        <h3>Submitted Comments</h3>
+        <button class="btn btn-secondary" onclick="generateReport()">Generate Report</button>
+        <table class="comments-table" id="commentsTable">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>Comment</th>
+                    <th>Photo</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for comment in video.timestamp_comments|sort(attribute='created_at') %}
+                <tr>
+                    <td>{{ '%02d:%02d'|format(comment.minutes, comment.seconds) }}</td>
+                    <td>{{ comment.comment }}</td>
+                    <td>
+                        {% if comment.photo_path %}
+                        <img src="{{ url_for('static', filename=comment.photo_path.replace('static/', '')) }}" alt="Comment photo" class="comment-photo">
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="POST" action="{{ url_for('delete_timestamp_comment', comment_id=comment.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this comment?');">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function generateReport() {
+    // This function will gather the data from the table and prepare it for download.
+    // For now, it will just open a new window with the table content.
+    var tableHtml = document.getElementById('commentsTable').outerHTML;
+    var reportWindow = window.open('', '_blank');
+    reportWindow.document.write('<html><head><title>Comments Report</title>');
+    // Optional: Add some basic styling for the report
+    reportWindow.document.write('<style>body{font-family: sans-serif;} table{width:100%; border-collapse:collapse;} td,th{border:1px solid #ddd; padding:8px;} th{background-color:#f2f2f2;}</style>');
+    reportWindow.document.write('</head><body>');
+    reportWindow.document.write('<h2>Comments for {{ video.subject }} - {{ video.episode }}</h2>');
+    reportWindow.document.write(tableHtml);
+    reportWindow.document.write('</body></html>');
+    reportWindow.document.close();
+}
+</script>
+
+{% endblock %} 

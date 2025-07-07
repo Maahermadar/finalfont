@@ -1,0 +1,1475 @@
+{% extends "dashboard_base.html" %}
+{% block dashboard_content %}
+
+<style>
+  /* General Blue Theme for Raw Videos Dashboard */
+  h2 {
+    color: #37b3ba;
+    margin-bottom: 25px;
+    font-size: 2rem;
+  }
+
+  /* Flash Message Styles - Updated for Clean and Formal Look */
+  .alert {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: 0.35rem;
+    font-size: 1rem;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: opacity 0.3s ease;
+    justify-content: space-between;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .alert-icon {
+    margin-right: 0.8rem;
+    font-size: 1.2rem;
+    line-height: 1;
+  }
+
+  .alert-success {
+    color: #0f5132;
+    background-color: #d1e7dd;
+    border-color: #badbcc;
+  }
+
+  .alert-warning {
+    color: #664d03;
+    background-color: #fff3cd;
+    border-color: #ffecb5;
+  }
+
+  .alert-danger, .alert-error {
+    color: #842029;
+    background-color: #f8d7da;
+    border-color: #f5c2c7;
+  }
+
+  .alert-info {
+    color: #055160;
+    background-color: #cff4fc;
+    border-color: #b6effb;
+  }
+
+  /* Animation for Flash Messages */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .alert {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  /* Close Button for Flash Messages */
+  .alert-close {
+    margin-left: 0.8rem;
+    cursor: pointer;
+    font-size: 1.2rem;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+  }
+
+  .alert-close:hover {
+    opacity: 1;
+  }
+
+  .button-bar {
+    margin-bottom: 25px;
+    display: flex;
+    gap: 15px;
+  }
+
+  .action-btn {
+    background-color: #37b3ba;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s ease;
+  }
+
+  .action-btn:hover {
+    background-color: #2a8f94; /* Slightly darker shade for hover */
+  }
+
+  /* Modal Header Blue Theme */
+  .modal-content h3 {
+    background-color: #37b3ba;
+    color: white;
+    padding: 15px 20px;
+    margin-top: 0;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    font-size: 1.5rem;
+  }
+
+  /* Existing modal styles copied from dashboard_home.html for consistency */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6);
+  }
+
+  .modal-content {
+    background-color: #fefefe;
+    margin: 8% auto;
+    padding: 0;
+    border: none;
+    width: 90%; /* Adjusted for responsiveness */
+    max-width: 500px; /* Restored default modal width */
+    border-radius: 12px;
+    position: relative;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Apply specific width only to the bulk upload modal */
+  #uploadModal .modal-content {
+      max-width: 750px;
+  }
+
+  .modal-content h3 {
+    background-color: #37b3ba;
+    color: white;
+    padding: 15px 20px;
+    margin-top: 0;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    font-size: 1.5rem;
+  }
+
+  .modal-content form {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .modal-content input[type="text"],
+  .modal-content input[type="date"],
+  .modal-content select,
+  .modal-content button[type="submit"] {
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+  }
+
+  .modal-content button[type="submit"] {
+    background-color: #37b3ba;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .modal-content button[type="submit"]:hover {
+    background-color: #2a8f94;
+  }
+
+  .close {
+    color: #fff;
+    opacity: 0.8;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+  }
+
+  .close:hover {
+    opacity: 1;
+  }
+
+  /* Table and filter styles can remain as is, or be adjusted if needed */
+  .filter-controls-wrapper {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .filter-controls-wrapper input[type="text"],
+  .filter-controls-wrapper input[type="date"],
+  .filter-controls-wrapper select {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+  }
+
+  .pagination-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+  }
+
+  .pagination-bar button {
+    background-color: #e0e0e0;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+
+  .pagination-bar button:hover {
+    background-color: #d0d0d0;
+  }
+
+  .video-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .video-table th,
+  .video-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+  }
+
+  .video-table th {
+    background-color: #f8f8f8;
+    font-weight: 600;
+    color: #333;
+  }
+
+  .video-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+
+  .video-table tbody tr:hover {
+    background-color: #f1f1f1;
+  }
+
+  .assign-btn {
+    background-color: #5ba8ad; /* A slightly different blue for internal buttons */
+    color: white;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color 0.2s ease;
+  }
+
+  .assign-btn:hover {
+    background-color: #4a8f94;
+  }
+
+  .assign-btn.delete {
+    background-color: #dc3545;
+  }
+
+  .assign-btn.delete:hover {
+    background-color: #c82333;
+  }
+
+  .assigned-cell-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .assigned-editor-info {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .assigned-editor-info img {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .assigned-editor-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #37b3ba;
+  }
+
+  .assigned-cell-actions {
+    display: flex;
+    gap: 5px;
+  }
+
+  .actions-column {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Loading Modals */
+  #assignLoading,
+  #deleteLoading {
+    background-color: rgba(0,0,0,0.7);
+    display: none; /* Ensure hidden by default */
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 1.2rem;
+  }
+
+  .dual-ring {
+    display: inline-block;
+    width: 60px;
+    height: 60px;
+    border: 6px solid #fff;
+    border-radius: 50%;
+    border-top-color: #37b3ba;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+  }
+
+  .dual-ring.delete {
+    border-top-color: #dc3545;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  #popupMessage {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    transform: none;
+    background-color: #333;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    z-index: 1001;
+    opacity: 0;
+    max-width: 600px; /* Increased max-width significantly */
+    white-space: nowrap; /* Ensure text stays on one line */
+    text-align: center; /* Center the text */
+    transition: opacity 0.3s ease-in-out, transform 0s;
+    display: none;
+    height: auto;
+    max-height: fit-content;
+    padding: 10px 20px;
+    box-sizing: border-box; /* Include padding/border in element's total size */
+    min-width: 200px; /* Ensure a minimum width */
+    min-height: 40px; /* Ensure a minimum height */
+  }
+
+  #popupMessage.show {
+    opacity: 1;
+    display: block;
+  }
+
+  /* Editor Grid for Modals */
+  .editor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 15px;
+    padding: 20px;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+
+  .editor-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    text-align: center;
+  }
+
+  .editor-card:hover {
+    background-color: #eef7f7; /* Light blue hover */
+    transform: translateY(-2px);
+  }
+
+  .editor-card img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 8px;
+  }
+
+  .editor-card.selected-editor {
+    border: 2px solid #37b3ba; /* Highlight color */
+    box-shadow: 0 0 10px rgba(55, 179, 186, 0.5); /* Subtle glow */
+  }
+
+  .no-data-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #888;
+    font-size: 0.98rem;
+    margin: 0.5rem 0 0.5rem 0;
+    background: none;
+    box-shadow: none;
+    min-height: unset;
+    border-radius: 0;
+  }
+  .no-data-emoji {
+    font-size: 1.2rem;
+    display: inline-block;
+    animation: look-around 1.2s infinite alternate;
+  }
+  @keyframes look-around {
+    0% { transform: translateX(0) rotate(-10deg); }
+    30% { transform: translateX(4px) rotate(10deg); }
+    60% { transform: translateX(-4px) rotate(-10deg); }
+    100% { transform: translateX(0) rotate(0deg); }
+  }
+  .no-data-text {
+    font-weight: 400;
+    color: #e74c3c;
+  }
+
+  #deleteLoading .loading-text {
+    color: #dc3545; /* Red to match delete button */
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .video-table th:nth-child(1), /* Checkbox */
+    .video-table td:nth-child(1),
+    .video-table th:nth-child(4), /* SRT File */
+    .video-table td:nth-child(4),
+    .video-table th:nth-child(5), /* Date Assigned */
+    .video-table td:nth-child(5),
+    .video-table .actions-column {
+      display: none;
+    }
+
+    .assigned-cell-actions,
+    .assigned-editor-info span {
+      display: none;
+    }
+  }
+
+  /* Modal Tabs */
+  .modal-tabs {
+    display: flex;
+    border-bottom: 1px solid #ccc;
+    margin: 0 20px;
+  }
+  .tab-link {
+    background: none;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 1rem;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+  }
+  .tab-link.active {
+    border-bottom: 3px solid #37b3ba;
+    color: #37b3ba;
+    font-weight: bold;
+  }
+  .tab-content {
+    display: none;
+    padding: 20px;
+    flex-direction: column;
+    gap: 15px;
+  }
+  .tab-content h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+  }
+  .tab-content form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  /* Manual Entry Table - Cleaner Style */
+  #manual-table-container {
+    max-height: 40vh;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+  }
+  #manual-video-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  #manual-video-table th,
+  #manual-video-table td {
+    border: none;
+    padding: 8px 10px; /* Reduced vertical padding */
+    text-align: left;
+    border-bottom: 1px solid #eee;
+  }
+  #manual-video-table tbody tr:last-child td {
+      border-bottom: none;
+  }
+  #manual-video-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9rem;
+  }
+  #manual-video-table input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #dcdcdc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+  }
+  #manual-video-table input:focus {
+      border-color: #37b3ba;
+      outline: none;
+  }
+  #manual-video-table .delete-row-btn {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  #manual-video-table .delete-row-btn:hover {
+    background-color: #c0392b;
+  }
+
+  /* Base styles for all icon-based buttons */
+  .action-icon-btn {
+    background-color: transparent; /* Default to no background */
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    transition: transform 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+  }
+  .action-icon-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor; /* Icon color is inherited from the button's text color */
+  }
+  .action-icon-btn:hover {
+    transform: scale(1.15);
+  }
+
+  /* Specific styles for the main table's delete button (red bg, white icon) */
+  .video-table .delete-btn {
+      background-color: #e74c3c;
+      color: white;
+      padding: 6px 8px;
+  }
+  
+  /* Specific styles for the manual table buttons (colored icon, no bg) */
+  #manual-video-table .duplicate-btn {
+    color: #27ae60; /* Green icon */
+  }
+  #manual-video-table .delete-btn {
+    color: #e74c3c; /* Red icon */
+  }
+  #manual-video-table .action-cell {
+      width: 90px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px; /* Controls space between buttons */
+  }
+
+</style>
+
+<h2>Raw Videos Management</h2>
+
+<div class="button-bar">
+  <button class="action-btn" onclick="showNewVideoModal()">➕ New Raw Video</button>
+  <button class="action-btn" onclick="showBulkUploadModal()">Bulk Upload</button>
+  <button class="action-btn" onclick="openBulkAssignModal()">Bulk Assign</button>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">
+                <span class="alert-icon">
+                    {% if category == 'success' %}✓
+                    {% elif category == 'warning' %}⚠️
+                    {% elif category == 'danger' or category == 'error' %}✗
+                    {% else %}ℹ️
+                    {% endif %}
+                </span>
+                {{ message }}
+                <span class="alert-close" onclick="this.parentElement.style.display='none'">&times;</span>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<!-- Filters -->
+<div class="filter-controls-wrapper">
+    <input type="text" id="textSearchInput" onkeyup="applyFilters()" placeholder="Search by subject, episode, chapter...">
+
+    <select id="subjectFilterDropdown" onchange="applyFilters()">
+      <option value="">All Subjects</option>
+      {% for subject in subjects %}
+        <option value="{{ subject|lower }}">{{ subject }}</option>
+      {% endfor %}
+    </select>
+  
+    <input type="date" id="dateFilterInput" onchange="applyFilters()" />
+
+    <select id="assignmentFilterDropdown" onchange="applyFilters()">
+      <option value="all">All Assignment Status</option>
+      <option value="assigned">Assigned</option>
+      <option value="unassigned">Unassigned</option>
+    </select>
+</div>
+
+<div id="noDataMessage" class="no-data-message" style="display:none;">
+  <span class="no-data-emoji" role="img" aria-label="Thinking">🤔</span>
+  <span class="no-data-text">No raw videos found for the selected filters.</span>
+</div>
+
+<div class="pagination-bar">
+  <label for="rowsPerPage">Rows per page:</label>
+  <select id="rowsPerPage" onchange="changeRowsPerPage(this.value)">
+    <option value="10">10</option>
+    <option value="20" selected>20</option>
+    <option value="40">40</option>
+  </select>
+  <button id="prevPageBtn" onclick="prevPage()">Previous</button>
+  <span id="pageInfo">Page 1 of 1</span>
+  <button id="nextPageBtn" onclick="nextPage()">Next</button>
+  <span id="recordCount"></span>
+</div>
+
+<table class="video-table">
+  <thead>
+    <tr>
+      <th><input type="checkbox" id="selectAllCheckbox"></th>
+      <th>Subject</th>
+      <th>Episode</th>
+      <th>Chapter</th>
+      <th>Date</th>
+      <th>Assign</th>
+      <th class="actions-column">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for raw in raw_videos %}
+    <tr data-id="{{ raw.id }}">
+      <td><input type="checkbox" class="select-checkbox" value="{{ raw.id }}"></td>
+      <td>{{ raw.subject }}</td>
+      <td>{{ raw.episode }}</td>
+      <td>{{ raw.chapter }}</td>
+      <td>{{ raw.date }}</td>
+      <td id="assign-cell-{{ raw.id }}">
+        {% if raw.status == 'Assigned' and raw.editor %}
+          <div class="assigned-cell-content">
+            <div class="assigned-editor-info">
+              <img src="{{ raw.editor.signed_url }}" alt="{{ raw.editor.name }}" title="{{ raw.editor.name }}" class="assigned-editor-avatar">
+              <span>{{ raw.editor.name }}</span>
+            </div>
+            <div class="assigned-cell-actions">
+              <button class="assign-btn" onclick="openAssignModal('{{ raw.id }}', '{{ raw.editor.id }}')">Edit</button>
+              <button class="assign-btn delete" onclick="confirmUnassign('{{ raw.id }}')">Remove</button>
+            </div>
+          </div>
+        {% else %}
+          <button class="assign-btn" onclick="openAssignModal('{{ raw.id }}')">Assign</button>
+        {% endif %}
+      </td>
+      <td class="actions-column">
+        <button class="action-btn assign-btn" onclick="showEditRawVideoModal('{{ raw.id }}', '{{ raw.subject }}', '{{ raw.episode }}', '{{ raw.chapter }}', '{{ raw.date }}')">Edit</button>
+        <button class="action-icon-btn delete-btn" onclick="confirmDeleteRawVideo('{{ raw.id }}')" title="Delete Raw Video"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg></button>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- New Video Modal -->
+<div id="newVideoModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeNewVideoModal()">&times;</span>
+    <h3>Add New Raw Video</h3>
+    <form method="POST" action="/add_raw_video">
+      <select name="subject" required>
+        <option value="" disabled selected>Select a Subject</option>
+        {% for subject in all_subjects %}
+            <option value="{{ subject.name }}">{{ subject.name }}</option>
+        {% endfor %}
+      </select>
+      <input type="text" name="episode" placeholder="Episode" required>
+      <input type="text" name="chapter" placeholder="Chapter" required>
+      <input type="date" name="date" required>
+      <button type="submit">Submit</button>
+    </form>
+  </div>
+</div>
+
+
+<!-- Bulk Upload Modal -->
+<div id="uploadModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeBulkUploadModal()">&times;</span>
+    <h3>Bulk Raw Video Entry</h3>
+    
+    <div class="modal-tabs">
+      <button class="tab-link active" onclick="openTab(event, 'uploadExcelTab')">Upload Excel</button>
+      <button class="tab-link" onclick="openTab(event, 'manualEntryTab')">Manual Entry</button>
+    </div>
+
+    <div id="uploadExcelTab" class="tab-content" style="display: block;">
+      <h4>Upload from Excel File</h4>
+      <form method="POST" action="/bulk_upload_raw_videos" enctype="multipart/form-data">
+        <p>Select an .xlsx file with columns: Subject, Episode, Chapter, Date.</p>
+        <input type="file" name="excel_file" accept=".xlsx" required>
+        <button type="submit" class="action-btn">Upload File</button>
+      </form>
+    </div>
+
+    <div id="manualEntryTab" class="tab-content">
+      <h4>Enter Video Details Manually</h4>
+      <div id="manual-table-container">
+        <table id="manual-video-table">
+          <thead>
+            <tr>
+              <th>Subject</th>
+              <th>Episode</th>
+              <th>Chapter</th>
+              <th>Date</th>
+              <th class="action-cell">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Rows dynamically added here -->
+          </tbody>
+        </table>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <button class="action-btn" onclick="addManualRow()">+ Add Row</button>
+        <button class="action-btn" onclick="submitManualData()">Submit Entries</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Bulk Assign Modal -->
+<div id="bulkAssignModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeBulkAssignModal()">&times;</span>
+    <h3>Select Editor for Bulk Assignment</h3>
+    <div class="editor-grid">
+      {% for ed in editors %}
+      <div class="editor-card" onclick="bulkAssignToEditor('{{ ed.id }}')" data-editor-id="{{ ed.id }}">
+        <img src="{{ ed.signed_url }}" alt="{{ ed.name }}">
+        <div>{{ ed.name }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Assign Editor Modal -->
+<div id="assignModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeAssignModal()">&times;</span>
+    <h3>Select Editor</h3>
+    <div class="editor-grid">
+      {% for ed in editors %}
+      <div class="editor-card" onclick="assignEditor('{{ ed.id }}')" data-editor-id="{{ ed.id }}">
+        <img src="{{ ed.signed_url }}" alt="{{ ed.name }}">
+        <div>{{ ed.name }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Edit Raw Video Modal -->
+<div id="editRawVideoModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeEditRawVideoModal()">&times;</span>
+    <h3>Edit Raw Video Details</h3>
+    <form id="editRawVideoForm">
+      <input type="hidden" id="editRawVideoId" name="raw_id">
+      <input type="text" id="editSubject" name="subject" placeholder="Subject" required>
+      <input type="text" id="editEpisode" name="episode" placeholder="Episode" required>
+      <input type="text" id="editChapter" name="chapter" placeholder="Chapter" required>
+      <input type="date" id="editDate" name="date" required>
+      <button type="submit">Save Changes</button>
+    </form>
+  </div>
+</div>
+
+<div id="assignLoading" class="modal">
+    <div class="dual-ring"></div>
+    <div class="loading-text">Assigning...</div>
+</div>
+
+
+<div id="deleteLoading" class="modal">
+    <div class="dual-ring delete"></div>
+    <div class="loading-text">Deleting...</div>
+</div>
+
+<div id="popupMessage"></div>
+
+<script id="editorsData" type="application/json">{{ editors | tojson | safe }}</script>
+
+<script>
+let itemsPerPage = 20;
+let currentPage = 1;
+let editorsData = [];
+let existingRawVideoKeys = new Set();
+
+function normalizeEpisodeJS(ep) {
+    if (!ep) return '';
+    const epNumStr = String(ep).replace(/[^0-9]/g, '');
+    if (!epNumStr) return '';
+    return String(parseInt(epNumStr, 10));
+}
+
+function paginateRawVideos() {
+  const tbody = document.querySelector('tbody');
+  const allRows = Array.from(tbody.querySelectorAll("tr"));
+  let visibleRows = allRows.filter(row => row.dataset.visible === "true");
+
+  const totalRows = visibleRows.length;
+  const totalPages = Math.max(1, Math.ceil(totalRows / itemsPerPage));
+
+  currentPage = Math.min(currentPage, totalPages);
+  currentPage = Math.max(1, currentPage);
+
+  const start = (currentPage - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+
+  allRows.forEach(row => row.style.display = "none");
+
+  visibleRows.slice(start, end).forEach(row => row.style.display = "");
+
+  document.getElementById("pageInfo").textContent = `Page ${currentPage} of ${totalPages}`;
+  document.getElementById("prevPageBtn").disabled = currentPage === 1;
+  document.getElementById("nextPageBtn").disabled = currentPage === totalPages;
+  
+  const recordCountEl = document.getElementById("recordCount");
+  if (totalRows === 0) {
+    recordCountEl.innerHTML = `<span class='no-data-emoji' style='font-size:1.2rem;display:inline-block;animation:look-around 1.2s infinite alternate;'>🤔</span> <span style='color:#e74c3c;font-weight:bold;'>No video found for selected filter.</span>`;
+  } else {
+    recordCountEl.textContent = `Showing ${visibleRows.slice(start, end).length} of ${totalRows} records`;
+  }
+
+  // Populate existing video keys for duplicate checking
+  document.querySelectorAll(".video-table tbody tr").forEach(row => {
+      const subject = row.cells[1].textContent.trim().toLowerCase();
+      const episode = row.cells[2].textContent.trim();
+      const normalizedEpisode = normalizeEpisodeJS(episode);
+      if (subject && normalizedEpisode) {
+          existingRawVideoKeys.add(`${subject}||${normalizedEpisode}`);
+      }
+  });
+}
+
+function applyFilters() {
+  const textSearch = document.getElementById('textSearchInput').value.toLowerCase();
+  const subjectFilter = document.getElementById('subjectFilterDropdown').value.toLowerCase();
+  const dateFilter = document.getElementById('dateFilterInput').value;
+  const assignmentFilter = document.getElementById('assignmentFilterDropdown').value;
+  const rows = document.querySelectorAll("tbody tr");
+
+  rows.forEach(row => {
+    const subject = row.cells[1].textContent.toLowerCase();
+    const episode = row.cells[2].textContent.toLowerCase();
+    const chapter = row.cells[3].textContent.toLowerCase();
+    const date = row.cells[4].textContent.trim();
+    const isAssigned = row.cells[5].innerHTML.includes('assigned-cell-content');
+    
+    const textMatch = !textSearch || subject.includes(textSearch) || episode.includes(textSearch) || chapter.includes(textSearch);
+    const subjectMatch = !subjectFilter || subject === subjectFilter;
+    const dateMatch = !dateFilter || date === dateFilter;
+
+    let assignmentMatch = true;
+    if (assignmentFilter === 'assigned') {
+      assignmentMatch = isAssigned;
+    } else if (assignmentFilter === 'unassigned') {
+      assignmentMatch = !isAssigned;
+    }
+    
+    const isVisible = textMatch && subjectMatch && dateMatch && assignmentMatch;
+    row.dataset.visible = isVisible ? "true" : "false";
+  });
+
+  currentPage = 1;
+  paginateRawVideos();
+}
+
+function nextPage() {
+  currentPage++;
+  paginateRawVideos();
+}
+
+function prevPage() {
+  currentPage--;
+  paginateRawVideos();
+}
+
+function changeRowsPerPage(value) {
+  itemsPerPage = parseInt(value);
+  currentPage = 1;
+  paginateRawVideos();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const editorsDataScript = document.getElementById('editorsData');
+  if (editorsDataScript) {
+      try {
+          editorsData = JSON.parse(editorsDataScript.textContent);
+      } catch (e) {
+          console.error("Could not parse editors data", e);
+          editorsData = [];
+      }
+  }
+
+  document.querySelectorAll("tbody tr").forEach(row => row.dataset.visible = "true");
+  applyFilters();
+  
+  document.getElementById('selectAllCheckbox').addEventListener('change', function(e) {
+      document.querySelectorAll('.select-checkbox').forEach(checkbox => {
+          const row = checkbox.closest('tr');
+          if (row.style.display !== 'none') {
+            checkbox.checked = e.target.checked;
+          }
+      });
+  });
+});
+
+// ─── Assign Logic ───
+let selectedRawId = null;
+
+function openAssignModal(rawId, currentEditorId = null) {
+  selectedRawId = rawId;
+  document.getElementById('assignModal').style.display = 'flex';
+
+  // Remove any previously selected highlights
+  document.querySelectorAll('.editor-card').forEach(card => {
+    card.classList.remove('selected-editor');
+  });
+
+  // Highlight the currently assigned editor, if any
+  if (currentEditorId) {
+    const currentEditorCard = document.querySelector(`.editor-card[data-editor-id="${currentEditorId}"]`);
+    if (currentEditorCard) {
+      currentEditorCard.classList.add('selected-editor');
+    }
+  }
+}
+
+function closeAssignModal() {
+  document.getElementById('assignModal').style.display = 'none';
+  selectedRawId = null;
+  // Remove highlight when closing
+  document.querySelectorAll('.editor-card').forEach(card => {
+    card.classList.remove('selected-editor');
+  });
+}
+
+function assignEditor(selected_editor_id) {
+  if (!selectedRawId) return showPopup("Click Assign again. Something went wrong.", 'red');
+
+  const overlay = document.getElementById('assignLoading');
+  overlay.style.display = 'flex';
+
+  const formData = new FormData();
+  formData.append('editor_id', selected_editor_id);
+
+  fetch(`/assign_editor_to_raw/${selectedRawId}`, {
+    method: 'POST',
+    body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+    overlay.style.display = 'none';
+    if (data.success) {
+      const cell = document.getElementById(`assign-cell-${selectedRawId}`);
+      if (cell) {
+        cell.innerHTML = `
+          <div class="assigned-cell-content">
+            <div class="assigned-editor-info">
+              <img src="${data.signed_url}" alt="${data.editor_name}" title="${data.editor_name}" class="assigned-editor-avatar">
+              <span>${data.editor_name}</span>
+            </div>
+            <div class="assigned-cell-actions">
+              <button class="assign-btn" onclick="openAssignModal('${selectedRawId}', '${data.editor_id}')">Edit</button>
+              <button class="assign-btn delete" onclick="confirmUnassign('${selectedRawId}')">Remove</button>
+            </div>
+          </div>`;
+      }
+      closeAssignModal();
+      showPopup('✅ Assignment updated!', 'green');
+    } else {
+      showPopup("❌ Assign failed: " + (data.error || "Unknown error"), 'red');
+    }
+  })
+  .catch(err => {
+    overlay.style.display = 'none';
+    console.error(err);
+    showPopup("❌ Server error during assignment.", 'red');
+  });
+}
+
+function confirmUnassign(rawId) {
+  if (!confirm("Are you sure you want to delete this assignment?")) return;
+
+  const loader = document.getElementById("deleteLoading");
+  loader.style.display = 'flex';
+
+  fetch(`/unassign_editor_from_raw/${rawId}`, { method: 'POST' })
+  .then(res => res.json())
+  .then(data => {
+    loader.style.display = 'none';
+    if (data.success) {
+      const cell = document.getElementById(`assign-cell-${rawId}`);
+      if (cell) {
+        cell.innerHTML = `<button class="assign-btn" onclick="openAssignModal('${rawId}')">Assign</button>`;
+      }
+      showPopup('🗑️ Unassigned.', 'orange');
+    } else {
+      showPopup("❌ Unassign failed.", 'red');
+    }
+  })
+  .catch(err => {
+    loader.style.display = 'none';
+    console.error(err);
+    showPopup("❌ Server error while unassigning.", 'red');
+  });
+}
+
+// ─── Bulk Assign ───
+function openBulkAssignModal() {
+  const selected = [...document.querySelectorAll('.select-checkbox:checked')];
+  if (selected.length === 0) {
+    showPopup("Select at least one row to assign.", 'red');
+    return;
+  }
+  document.getElementById('bulkAssignModal').style.display = 'flex';
+}
+
+function closeBulkAssignModal() {
+  document.getElementById('bulkAssignModal').style.display = 'none';
+}
+
+function bulkAssignToEditor(editorId) {
+  const selected = [...document.querySelectorAll('.select-checkbox:checked')].map(cb => cb.value);
+  if (selected.length === 0) return alert("Please select at least one row.");
+
+  const formData = new FormData();
+  formData.append('editor_id', editorId);
+  formData.append('raw_ids', JSON.stringify(selected));
+
+  document.getElementById('assignLoading').style.display = 'flex';
+
+  fetch('/bulk_assign_editor', {
+    method: 'POST',
+    body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById('assignLoading').style.display = 'none';
+    if (data.success) {
+      closeBulkAssignModal();
+      showPopup('✅ Bulk assignment complete!', 'green');
+      const editorData = data.editor_data;
+      if (editorData) {
+          const selected = [...document.querySelectorAll('.select-checkbox:checked')].map(cb => cb.value);
+          selected.forEach(rawId => {
+              const cell = document.getElementById(`assign-cell-${rawId}`);
+              if (cell) {
+                  cell.innerHTML = `
+                    <div class="assigned-cell-content">
+                        <div class="assigned-editor-info">
+                            <img src="${editorData.signed_url}" alt="${editorData.name}" title="${editorData.name}" class="assigned-editor-avatar">
+                            <span>${editorData.name}</span>
+                        </div>
+                        <div class="assigned-cell-actions">
+                            <button class="assign-btn" onclick="openAssignModal('${rawId}', '${editorData.id}')">Edit</button>
+                            <button class="assign-btn delete" onclick="confirmUnassign('${rawId}')">Remove</button>
+                        </div>
+                    </div>`;
+              }
+          });
+          // uncheck all boxes
+          document.querySelectorAll('.select-checkbox:checked').forEach(cb => cb.checked = false);
+          document.getElementById('selectAllCheckbox').checked = false;
+      }
+    } else {
+      showPopup('❌ Bulk assignment failed!', 'red');
+    }
+  })
+  .catch(err => {
+    document.getElementById('assignLoading').style.display = 'none';
+    console.error(err);
+    showPopup('❌ Error occurred during bulk assign.', 'red');
+  });
+}
+
+// ─── Utility ───
+function showPopup(message, color) {
+  const popup = document.getElementById('popupMessage');
+  if (!popup) {
+      alert(message);
+      return;
+  }
+  popup.textContent = message;
+  popup.style.backgroundColor = color;
+  popup.style.display = 'block';
+  popup.offsetWidth;
+  popup.classList.add('show');
+
+  setTimeout(() => {
+    popup.classList.remove('show');
+    setTimeout(() => {
+      popup.style.display = 'none';
+    }, 300);
+  }, 8000);
+}
+
+function formatDateForInput(dateString) {
+  // Assuming dateString is in MM/DD/YYYY or similar
+  const parts = dateString.split('/');
+  if (parts.length === 3) {
+    const year = parts[2];
+    const month = parts[0].padStart(2, '0');
+    const day = parts[1].padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  // Fallback for different formats or if already YYYY-MM-DD
+  return dateString;
+}
+
+// ─── Modal Dismiss ───
+window.addEventListener('click', function (event) {
+  ['assignModal', 'newVideoModal', 'uploadModal', 'bulkAssignModal', 'editRawVideoModal'].forEach(id => {
+    const modal = document.getElementById(id);
+    if (event.target === modal) {
+      modal.style.display = 'none';
+    }
+  });
+});
+
+function showNewVideoModal() {
+  document.getElementById('newVideoModal').style.display = 'flex';
+}
+function closeNewVideoModal() {
+  document.getElementById('newVideoModal').style.display = 'none';
+}
+
+function showBulkUploadModal() {
+  document.getElementById('uploadModal').style.display = 'flex';
+  // Ensure the manual table has at least one row when opened
+  if (document.querySelectorAll("#manual-video-table tbody tr").length === 0) {
+    addManualRow();
+  }
+}
+
+function closeBulkUploadModal() {
+  document.getElementById('uploadModal').style.display = 'none';
+}
+
+function showEditRawVideoModal(id, subject, episode, chapter, date) {
+  document.getElementById('editRawVideoId').value = id;
+  document.getElementById('editSubject').value = subject;
+  document.getElementById('editEpisode').value = episode;
+  document.getElementById('editChapter').value = chapter;
+  document.getElementById('editDate').value = formatDateForInput(date); // Use the new formatting function
+  document.getElementById('editRawVideoModal').style.display = 'flex';
+}
+
+function closeEditRawVideoModal() {
+  document.getElementById('editRawVideoModal').style.display = 'none';
+}
+
+document.getElementById('editRawVideoForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const rawId = document.getElementById('editRawVideoId').value;
+  const subject = document.getElementById('editSubject').value;
+  const episode = document.getElementById('editEpisode').value;
+  const chapter = document.getElementById('editChapter').value;
+  const date = document.getElementById('editDate').value;
+
+  const formData = new FormData();
+  formData.append('subject', subject);
+  formData.append('episode', episode);
+  formData.append('chapter', chapter);
+  formData.append('date', date);
+
+  fetch(`/edit_raw_video/${rawId}`, {
+    method: 'POST',
+    body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      showPopup('✅ Video updated successfully!', 'green');
+      // Update the table row dynamically
+      const row = document.querySelector(`tr[data-id="${rawId}"]`);
+      if (row) {
+        row.cells[1].textContent = subject;
+        row.cells[2].textContent = episode;
+        row.cells[3].textContent = chapter;
+        row.cells[4].textContent = date;
+      }
+      closeEditRawVideoModal();
+    } else {
+      showPopup('❌ Failed to update video: ' + (data.error || 'Unknown error'), 'red');
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    showPopup('❌ Server error during update.', 'red');
+  });
+});
+
+function confirmDeleteRawVideo(rawId) {
+    if (!confirm("Are you sure you want to permanently delete this raw video record? This action cannot be undone and will also remove any associated editor handoff.")) {
+        return;
+    }
+
+    const loader = document.getElementById("deleteLoading");
+    loader.style.display = 'flex';
+
+    fetch(`/delete_raw_video/${rawId}`, { method: 'POST' })
+    .then(res => res.json())
+    .then(data => {
+        loader.style.display = 'none';
+        if (data.success) {
+            const row = document.querySelector(`tr[data-id="${rawId}"]`);
+            if (row) {
+                row.remove();
+            }
+            showPopup('🗑️ Raw video deleted successfully.', 'green');
+            // Re-calculate pagination and counts
+            applyFilters();
+        } else {
+            showPopup("❌ Delete failed: " + (data.error || "Unknown error"), 'red');
+        }
+    })
+    .catch(err => {
+        loader.style.display = 'none';
+        console.error(err);
+        showPopup("❌ Server error while deleting.", 'red');
+    });
+}
+
+// Tab functionality for modal
+function openTab(evt, tabName) {
+  var i, tabcontent, tablinks;
+  tabcontent = document.getElementById('uploadModal').getElementsByClassName("tab-content");
+  for (i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
+  }
+  tablinks = document.getElementById('uploadModal').getElementsByClassName("tab-link");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+  document.getElementById(tabName).style.display = "flex";
+  evt.currentTarget.className += " active";
+}
+
+// Manual entry table functionality
+function addManualRow() {
+  const tableBody = document.querySelector("#manual-video-table tbody");
+  const newRow = tableBody.insertRow();
+  newRow.innerHTML = `
+    <td><input type="text" name="subject" required></td>
+    <td><input type="text" name="episode" required></td>
+    <td><input type="text" name="chapter" required></td>
+    <td><input type="date" name="date" required></td>
+    <td class="action-cell">
+        <button type="button" class="action-icon-btn duplicate-btn" onclick="duplicateManualRow(this)" title="Duplicate Row"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z"/></svg></button>
+        <button type="button" class="action-icon-btn delete-btn" onclick="deleteManualRow(this)" title="Delete Row"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg></button>
+    </td>
+  `;
+}
+
+function duplicateManualRow(btn) {
+    const originalRow = btn.closest('tr');
+    if (!originalRow) return;
+
+    const inputs = originalRow.querySelectorAll('input');
+    const values = {
+        subject: inputs[0].value,
+        episode: inputs[1].value,
+        chapter: inputs[2].value,
+        date:    inputs[3].value
+    };
+
+    const tableBody = document.querySelector("#manual-video-table tbody");
+    const newRow = tableBody.insertRow(originalRow.rowIndex);
+
+    newRow.innerHTML = `
+        <td><input type="text" name="subject" required></td>
+        <td><input type="text" name="episode" required></td>
+        <td><input type="text" name="chapter" required></td>
+        <td><input type="date" name="date" required></td>
+        <td class="action-cell">
+            <button type="button" class="action-icon-btn duplicate-btn" onclick="duplicateManualRow(this)" title="Duplicate Row"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V2Zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H6ZM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1H2Z"/></svg></button>
+            <button type="button" class="action-icon-btn delete-btn" onclick="deleteManualRow(this)" title="Delete Row"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg></button>
+        </td>
+    `;
+    
+    const newInputs = newRow.querySelectorAll('input');
+    newInputs[0].value = values.subject;
+    newInputs[1].value = values.episode;
+    newInputs[2].value = values.chapter;
+    newInputs[3].value = values.date;
+    
+    newInputs[1].focus();
+    newInputs[1].select();
+}
+
+function deleteManualRow(btn) {
+    const row = btn.closest('tr');
+    if (row) {
+        row.parentNode.removeChild(row);
+    }
+}
+
+function submitManualData() {
+    const rows = document.querySelectorAll("#manual-video-table tbody tr");
+    const data = [];
+    const submissionKeys = new Set();
+    let isFormValid = true;
+
+    // Reset styles and check all rows
+    rows.forEach(row => {
+        row.style.backgroundColor = ''; // Reset background
+        const subjectInput = row.querySelector('input[name="subject"]');
+        const episodeInput = row.querySelector('input[name="episode"]');
+        const chapterInput = row.querySelector('input[name="chapter"]');
+        const dateInput = row.querySelector('input[name="date"]');
+
+        const subject = subjectInput.value.trim().toLowerCase();
+        const episode = episodeInput.value.trim();
+        const normalizedEpisode = normalizeEpisodeJS(episode);
+        const chapter = chapterInput.value.trim();
+        const date = dateInput.value.trim();
+        const key = `${subject}||${normalizedEpisode}`;
+
+        let hasError = false;
+
+        // 1. Check for empty fields
+        if (!subject || !episode || !chapter || !date) {
+            hasError = true;
+        }
+
+        // 2. Check for duplicates within the submission
+        if (submissionKeys.has(key)) {
+            showPopup(`Duplicate in form: ${subjectInput.value}, Ep ${episode}`, "orange");
+            hasError = true;
+        }
+
+        // 3. Check for duplicates against existing DB data
+        if (existingRawVideoKeys.has(key)) {
+            showPopup(`Existing duplicate: ${subjectInput.value}, Ep ${episode}`, "orange");
+            hasError = true;
+        }
+        
+        if (hasError) {
+            row.style.backgroundColor = '#f8d7da'; // Highlight rows with errors
+            isFormValid = false;
+        } else {
+             submissionKeys.add(key);
+             data.push({ 
+                 subject: subjectInput.value, 
+                 episode: episode, 
+                 chapter: chapter, 
+                 date: date 
+            });
+        }
+    });
+
+    if (!isFormValid) {
+        showPopup("Please fix highlighted rows. Check for empty fields or duplicates.", "red");
+        return;
+    }
+
+    if (data.length === 0) {
+        showPopup("Please add at least one row.", "red");
+        return;
+    }
+
+    document.getElementById('assignLoading').style.display = 'flex';
+
+    fetch('/bulk_add_raw_videos_manual', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ videos: data }),
+    })
+    .then(res => res.json())
+    .then(result => {
+        document.getElementById('assignLoading').style.display = 'none';
+        if (result.success) {
+            closeBulkUploadModal();
+            let successMessage = `✅ Successfully added ${result.count} videos.`;
+            if (result.skipped > 0) {
+                successMessage += ` Skipped ${result.skipped} duplicates.`;
+            }
+            showPopup(successMessage, 'green');
+            // Reload is necessary to update the client-side duplicate checker
+            window.location.reload();
+        } else {
+            showPopup("❌ Failed to add videos: " + (result.error || "Unknown error"), 'red');
+        }
+    })
+    .catch(err => {
+        document.getElementById('assignLoading').style.display = 'none';
+        console.error(err);
+        showPopup("❌ Server error while adding videos.", 'red');
+    });
+}
+
+</script>
+
+{% endblock %}

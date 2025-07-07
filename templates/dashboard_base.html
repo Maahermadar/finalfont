@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='main_sidebar.css', v='1.2') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='raw.css') }}">
+</head>
+<body>
+
+  <div class="sidebar">
+    <div class="dashboard-header">
+      <a href="{{ url_for('profile') }}" class="sidebar-user-inline" title="View your profile">
+        <img src="{{ url_for('serve_profile_image', filename=current_user.profile_picture or 'default.png') }}" alt="User Avatar" class="user-avatar">
+        <div class="user-text">
+          <div class="user-name">{{ current_user.username }}</div>
+          <div class="user-role">
+            {{ current_user.role.replace('_', ' ')|title }}
+          </div>
+        </div>
+      </a>
+      <button class="toggle-button" aria-label="Toggle sidebar">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+      <h2>Dashboard</h2>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('dashboard_home') }}" class="{% if current_page == 'home' %}active{% endif %}" title="Home">
+        <i class="fas fa-home"></i> <span>Home</span>
+      </a>
+      
+      {% if current_user.role in ['operator_admin', 'manager', 'supervisor'] %}
+      <a href="{{ url_for('review') }}" class="{% if current_page == 'review' %}active{% endif %}" title="Review">
+        <i class="fas fa-tasks"></i> <span>Review</span>
+      </a>
+      <a href="{{ url_for('approval') }}" class="{% if current_page == 'approval' %}active{% endif %}" title="Approval">
+        <i class="fas fa-check-circle"></i> <span>Approval</span>
+      </a>
+      {% endif %}
+
+      {% if current_user.role in ['operator_admin', 'manager', 'editor'] %}
+      <a href="{{ url_for('editors') }}" class="{% if current_page == 'editors' %}active{% endif %}" title="Editors">
+        <i class="fas fa-user-edit"></i> <span>Editors</span>
+      </a>
+      {% endif %}
+
+      {% if current_user.role in ['editor', 'operator_admin', 'manager'] %}
+      <a href="{{ url_for('my_comments') }}" class="{% if current_page == 'my_comments' %}active{% endif %}" title="My Comments">
+        <i class="fas fa-comment-dots"></i> <span>My Comments</span>
+        {% if new_comment_notifications_count > 0 %}
+          <span class="notification-badge">{{ new_comment_notifications_count }}</span>
+        {% endif %}
+      </a>
+      {% endif %}
+
+      {% if current_user.role in ['operator_admin', 'manager'] %}
+      <a href="{{ url_for('dashboard_raw_videos') }}" class="{% if current_page == 'dashboard_raw_videos' %}active{% endif %}" title="Raw Videos">
+        <i class="fas fa-film"></i> <span>Raw Videos</span>
+      </a>
+      <a href="{{ url_for('source_page') }}" class="{% if current_page == 'source' %}active{% endif %}" title="Source">
+        <i class="fas fa-book"></i> <span>Source</span>
+      </a>
+      <a href="{{ url_for('additions') }}" class="{% if current_page == 'additions' %}active{% endif %}" title="Additions">
+        <i class="fas fa-plus-circle"></i> <span>Additions</span>
+      </a>
+      {% endif %}
+
+      {% if current_user.role in ['operator_admin', 'manager', 'supervisor'] %}
+      <a href="{{ url_for('quick_review') }}" class="{% if current_page == 'quick_review' %}active{% endif %}" title="Quick Review">
+        <i class="fas fa-eye"></i> <span>Quick Review</span>
+      </a>
+      <!-- <a href="{{ url_for('comments_page') }}" class="{% if current_page == 'comments' %}active{% endif %}" title="Comments">
+        <i class="fas fa-comment-dots"></i> <span>Comments</span>
+      </a> -->
+      {% endif %}
+
+      {% if current_user.role in ['operator_admin', 'manager', 'editor'] %}
+      <a href="{{ url_for('progress_tracker') }}" class="{% if current_page == 'progress_tracker' %}active{% endif %}" title="Progress Tracker">
+        <i class="fa-solid fa-tasks-alt"></i>
+        <span>Progress Tracker</span>
+      </a>
+      {% endif %}
+      <!-- <a href="{{ url_for('reporting') }}" class="{% if current_page == 'reporting' %}active{% endif %}">
+        <i class="fa-solid fa-chart-bar"></i>
+        <span>Reporting</span>
+      </a> -->
+      {% if current_user.role == 'operator_admin' %}
+      <a href="{{ url_for('user_promo') }}" class="{% if current_page == 'user_promo' %}active{% endif %}" title="User Promotions">
+        <i class="fas fa-user-shield"></i>
+        <span>User Promotions</span>
+      </a>
+      {% endif %}
+      {% if current_user.role in ['operator_admin', 'manager'] %}
+      <a href="{{ url_for('activity_log') }}" class="{% if current_page == 'activity_log' %}active{% endif %}" title="Activity Log">
+        <i class="fas fa-history"></i>
+        <span>Activity Log</span>
+      </a>
+      <a href="{{ url_for('review_submissions') }}" class="{% if current_page == 'review_submissions' %}active{% endif %}" title="Review Submissions">
+        <i class="fas fa-check-to-slot"></i> <span>Review Submissions</span>
+        {% if new_submission_notifications_count > 0 %}
+          <span class="notification-badge">{{ new_submission_notifications_count }}</span>
+        {% endif %}
+      </a>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar-footer">
+      <a href="{{ url_for('logout') }}" title="Logout">
+        <i class="fas fa-sign-out-alt"></i> <span>Logout</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="main">
+    {% include 'notifications_toast.html' %}
+
+    <div class="main-header">
+      <div class="header-left">
+        <!-- Breadcrumbs or Title can go here -->
+      </div>
+      <div class="header-right">
+        <div class="notification-wrapper">
+          <button id="notification-bell" class="notification-bell" title="Notifications">
+            <i class="fas fa-bell"></i>
+            {% if unread_notifications_count > 0 %}
+              <span id="notification-count" class="notification-count-badge">{{ unread_notifications_count }}</span>
+            {% endif %}
+          </button>
+          <div id="notification-panel" class="notification-panel">
+            <div class="notification-panel-header">
+              <h4>Notifications</h4>
+            </div>
+            <div class="notification-panel-body">
+              {% if notifications %}
+                {% for notification in notifications %}
+                  {% if notification.notification_type == 'comment' and notification.comment %}
+                    <a href="{{ url_for('my_comments', _anchor='comment-' ~ notification.comment_id) }}" class="notification-item">
+                  {% else %}
+                    <a href="{{ url_for('notifications_page') }}" class="notification-item">
+                  {% endif %}
+                    <div class="notification-item-icon">
+                      {% if notification.notification_type == 'password_reset' %}
+                        <i class="fas fa-key"></i>
+                      {% elif notification.notification_type == 'submission' %}
+                        <i class="fas fa-paper-plane"></i>
+                      {% else %}
+                        <i class="fas fa-comment-alt"></i>
+                      {% endif %}
+                    </div>
+                    <div class="notification-item-content">
+                      {% if notification.notification_type == 'password_reset' %}
+                        <p class="item-text">{{ notification.message | safe }}</p>
+                      {% elif notification.notification_type == 'submission' %}
+                        <p class="item-text">{{ notification.message | safe }}</p>
+                      {% elif notification.comment %}
+                        <p class="item-text">New comment for <strong>{{ notification.comment.subject }}</strong> - Ep. {{ notification.comment.episode }}</p>
+                      {% else %}
+                         <p class="item-text">{{ notification.message | safe }}</p>
+                      {% endif %}
+                      <p class="item-time">{{ (notification.created_at | localtime).strftime('%b %d at %I:%M %p') }}</p>
+                    </div>
+                  </a>
+                {% endfor %}
+              {% else %}
+                <div class="notification-empty-state">
+                  <i class="fas fa-check-circle"></i>
+                  <p>You're all caught up!</p>
+                </div>
+              {% endif %}
+            </div>
+            <div class="notification-panel-footer">
+              <a href="{{ url_for('notifications_page') }}">View All Notifications</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% block dashboard_content %}{% endblock %}
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const sidebar = document.querySelector('.sidebar');
+      const toggleButton = document.querySelector('.toggle-button');
+      
+      // Toggle sidebar
+      toggleButton.addEventListener('click', function() {
+        // Only allow toggle on desktop
+        if (window.innerWidth > 768) {
+          sidebar.classList.toggle('collapsed');
+        }
+        
+        // Update icon based on desktop collapsed state
+        const icon = toggleButton.querySelector('i');
+        if (sidebar.classList.contains('collapsed')) {
+          icon.classList.remove('fa-chevron-left');
+          icon.classList.add('fa-chevron-right');
+        } else {
+          icon.classList.remove('fa-chevron-right');
+          icon.classList.add('fa-chevron-left');
+        }
+      });
+      
+      // --- Notification Panel Logic ---
+      const bell = document.getElementById('notification-bell');
+      const panel = document.getElementById('notification-panel');
+      const countBadge = document.getElementById('notification-count');
+
+      if (bell) {
+        bell.addEventListener('click', function(event) {
+          event.stopPropagation();
+          const isVisible = panel.style.display === 'block';
+          panel.style.display = isVisible ? 'none' : 'block';
+          
+          if (!isVisible && countBadge) {
+            // Mark as read on the backend
+            fetch('/notifications/mark-as-read', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            }).then(response => response.json())
+              .then(data => {
+                if (data.success) {
+                  // Hide badge on the client-side immediately
+                  countBadge.style.display = 'none';
+                }
+              }).catch(error => console.error('Error:', error));
+          }
+        });
+      }
+
+      // Close panel if clicking outside
+      window.addEventListener('click', function(event) {
+        if (panel && !panel.contains(event.target) && !bell.contains(event.target)) {
+          panel.style.display = 'none';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

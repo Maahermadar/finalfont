@@ -1,0 +1,189 @@
+{% extends "dashboard_base.html" %}
+{% block dashboard_content %}
+
+<div class="notifications-container">
+    <div class="notifications-header">
+        <h1><i class="fas fa-bell icon-header"></i> All Notifications</h1>
+        <p class="subtitle">A complete log of your alerts and updates.</p>
+    </div>
+
+    <div class="notifications-list">
+        {% if notifications %}
+            {% for notification in notifications %}
+                <div class="notification-item type-{{ notification.notification_type }}">
+                    <div class="notification-icon">
+                        {% if notification.notification_type == 'password_reset' %}
+                            <i class="fas fa-key"></i>
+                        {% elif notification.notification_type == 'comment' %}
+                            <i class="fas fa-comment-dots"></i>
+                        {% elif notification.notification_type == 'submission' %}
+                            <i class="fas fa-paper-plane"></i>
+                        {% else %}
+                            <i class="fas fa-bell"></i>
+                        {% endif %}
+                    </div>
+                    <div class="notification-content">
+                        <div class="notification-details">
+                            {% if notification.notification_type == 'password_reset' %}
+                                <span class="notification-title">Security Alert</span>
+                                <p>{{ notification.message | safe }}</p>
+                                <a href="{{ url_for('activity_log') }}" class="notification-link">View Activity Log</a>
+                            {% elif notification.notification_type == 'submission' %}
+                                <span class="notification-title">{{ notification.header or 'New Submission' }}</span>
+                                <p>{{ notification.message | safe }}</p>
+                                <a href="{{ url_for('review_submissions') }}" class="notification-link">Review Now</a>
+                            {% elif notification.comment %}
+                                <span class="notification-title">New Comment</span>
+                                <p>
+                                    Feedback for <strong>{{ notification.comment.subject }} - Ep {{ notification.comment.episode }}</strong>.
+                                </p>
+                                <a href="{{ url_for('my_comments', _anchor='comment-' ~ notification.comment_id) }}" class="notification-link">View Details</a>
+                            {% else %}
+                                 <span class="notification-title">System Alert</span>
+                                <p>{{ notification.message or "You have a new update." }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="notification-timestamp" title="{{ notification.created_at | localtime }}">
+                            {{ (notification.created_at | localtime).strftime('%b %d, %Y at %I:%M %p') }}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-notifications">
+                <i class="fas fa-check-circle"></i>
+                <p>You're all caught up!</p>
+                <span>No new notifications.</span>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.notifications-container {
+    padding: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.notifications-header {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 1.5rem;
+}
+
+.notifications-header h1 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #343a40;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.notifications-header .subtitle {
+    font-size: 1rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.notifications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.notification-item {
+    display: flex;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border-left: 5px solid;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.notification-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Colors based on type */
+.notification-item.type-comment { border-left-color: #37b3ba; }
+.notification-item.type-password_reset { border-left-color: #ffc107; }
+.notification-item.type-submission { border-left-color: #007bff; }
+
+.notification-icon {
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+}
+.type-comment .notification-icon { color: #37b3ba; }
+.type-password_reset .notification-icon { color: #ffc107; }
+.type-submission .notification-icon { color: #007bff; }
+
+.notification-content {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.notification-title {
+    font-weight: 600;
+    color: #343a40;
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+.notification-content p {
+    margin: 0;
+    color: #495057;
+    line-height: 1.5;
+}
+
+.notification-link {
+    display: inline-block;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #37b3ba;
+    text-decoration: none;
+}
+.notification-link:hover {
+    text-decoration: underline;
+}
+
+.notification-timestamp {
+    font-size: 0.85rem;
+    color: #6c757d;
+    white-space: nowrap;
+}
+
+.no-notifications {
+    text-align: center;
+    padding: 4rem 2rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    color: #6c757d;
+}
+.no-notifications .fa-check-circle {
+    font-size: 3rem;
+    color: #28a745;
+    margin-bottom: 1rem;
+}
+.no-notifications p {
+    font-size: 1.25rem;
+    font-weight: 500;
+    margin: 0 0 0.5rem 0;
+}
+.no-notifications span {
+    font-size: 1rem;
+}
+</style>
+
+{% endblock %} 

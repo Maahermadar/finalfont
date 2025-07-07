@@ -1,0 +1,139 @@
+{% extends "dashboard_base.html" %}
+{% block dashboard_content %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='comments_page.css') }}">
+
+<div class="comments-container">
+  <div class="comments-header">
+    <h2>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+      Review Comments Log
+    </h2>
+    
+    <div class="header-actions">
+      <div class="search-container">
+        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" class="search-input" placeholder="Search comments..." id="searchInput">
+      </div>
+    </div>
+  </div>
+
+  {% if comments %}
+  <div class="table-wrapper">
+    <table class="comments-table">
+      <thead>
+        <tr>
+          <th>Subject</th>
+          <th>Episode</th>
+          <th>Date</th>
+          <th>File</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for comment in comments %}
+        <tr>
+          <td class="subject-cell">{{ comment.subject }}</td>
+          <td><span class="episode-cell">Episode {{ comment.episode }}</span></td>
+          <td class="date-cell">{{ (comment.timestamp | localtime).strftime('%b %d, %Y') }}</td>
+          <td class="file-cell">
+            <svg class="file-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+              <polyline points="13 2 13 9 20 9"></polyline>
+            </svg>
+            <span class="file-name" title="{{ comment.filename }}">{{ comment.filename }}</span>
+          </td>
+          <td class="action-cell">
+            <a href="{{ url_for('download_comment', comment_id=comment.id) }}" class="download-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Download
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination-container">
+    <div class="pagination-controls">
+      <span>Showing {{ pagination.items|length }} of {{ pagination.total }} results</span>
+      <form method="get" action="{{ url_for('comments_page') }}">
+        <select name="per_page" onchange="this.form.submit()">
+          <option value="8" {% if pagination.per_page == 8 %}selected{% endif %}>8 per page</option>
+          <option value="16" {% if pagination.per_page == 16 %}selected{% endif %}>16 per page</option>
+          <option value="64" {% if pagination.per_page == 64 %}selected{% endif %}>64 per page</option>
+        </select>
+      </form>
+    </div>
+    <div class="pagination">
+        {% if pagination.has_prev %}
+            <a href="{{ url_for('comments_page', page=pagination.prev_num, per_page=pagination.per_page) }}" class="pagination-btn">&lt; Prev</a>
+        {% else %}
+            <span class="pagination-btn disabled">&lt; Prev</span>
+        {% endif %}
+
+        {% for page_num in pagination.iter_pages() %}
+            {% if page_num %}
+                {% if page_num != pagination.page %}
+                    <a href="{{ url_for('comments_page', page=page_num, per_page=pagination.per_page) }}" class="pagination-btn">{{ page_num }}</a>
+                {% else %}
+                    <strong class="pagination-btn active">{{ page_num }}</strong>
+                {% endif %}
+            {% else %}
+                <span class="pagination-ellipsis">...</span>
+            {% endif %}
+        {% endfor %}
+
+        {% if pagination.has_next %}
+            <a href="{{ url_for('comments_page', page=pagination.next_num, per_page=pagination.per_page) }}" class="pagination-btn">Next &gt;</a>
+        {% else %}
+            <span class="pagination-btn disabled">Next &gt;</span>
+        {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+    </div>
+    <h3 class="empty-title">No Comments Found</h3>
+    <p class="empty-text">There are no review comments available at the moment. Once comments are uploaded, they will appear here.</p>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Search functionality
+  const searchInput = document.getElementById('searchInput');
+  const tableRows = document.querySelectorAll('.comments-table tbody tr');
+  
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
+      
+      // This is a simple client-side search. For server-side pagination,
+      // a real implementation would trigger a new server request with a search query.
+      // For now, we'll just show/hide rows on the current page.
+      tableRows.forEach(row => {
+        const rowText = row.textContent.toLowerCase();
+        row.style.display = rowText.includes(searchTerm) ? '' : 'none';
+      });
+    });
+  }
+});
+</script>
+
+{% endblock %}

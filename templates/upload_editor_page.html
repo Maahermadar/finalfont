@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Upload Assigned Editors</title>
+  <style>
+    body { font-family: Arial; padding: 40px; background: #f5f5f5; }
+    form { background: white; padding: 30px; border-radius: 10px; width: 400px; margin: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #2d8c91; }
+    input[type=file], button {
+      display: block;
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      font-size: 16px;
+    }
+    button {
+      background: #2d8c91;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <form method="POST" enctype="multipart/form-data">
+    <h2>Assign Editors from Excel</h2>
+    <input type="file" name="excel_file" accept=".xlsx" required>
+    <button type="submit">Upload & Assign</button>
+  </form>
+</body>
+</html>

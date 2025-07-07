@@ -1,0 +1,107 @@
+{% extends "dashboard_base.html" %}
+{% block dashboard_content %}
+
+<div class="user-promo-header">
+    <div class="header-content">
+        <h1><i class="fas fa-calendar-alt icon-header"></i> Supervisor Schedule</h1>
+        <p class="subtitle">Full weekly duty roster.</p>
+    </div>
+</div>
+
+<div class="dashboard-panel">
+    <div class="panel-body">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Day</th>
+                    <th>Time</th>
+                    <th>Supervisor</th>
+                    <th>Assigned Subjects</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for schedule in schedules %}
+                <tr>
+                    <td><strong>{{ schedule.day_of_week }}</strong></td>
+                    <td>{{ schedule.start_time.strftime('%I:%M %p') }} - {{ schedule.end_time.strftime('%I:%M %p') }}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <img src="{{ get_proxy_url(schedule.supervisor.profile_picture) }}" class="avatar-small" alt="{{ schedule.supervisor.name }}">
+                            <span>{{ schedule.supervisor.name }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        {{ schedule.supervisor.subjects|map(attribute='name')|join(', ') or 'None' }}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="text-center">No schedules have been set up yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.table th, .table td {
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+    text-align: left;
+}
+.table th {
+    font-weight: 600;
+    color: #495057;
+}
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+}
+.avatar-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.text-center {
+    text-align: center;
+}
+.user-promo-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 1.5rem 2rem; 
+    background: var(--primary-color); 
+    color: white; 
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+}
+.user-promo-header h1 { 
+    font-size: 1.75rem; 
+    margin: 0; 
+    display: flex; 
+    align-items: center; 
+    gap: 0.75rem; 
+    color: white; 
+}
+.user-promo-header .subtitle { 
+    margin-top: 0.25rem; 
+    font-size: 0.95rem; 
+    color: rgba(255, 255, 255, 0.9); 
+}
+.dashboard-panel {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+.panel-body {
+    padding: 1.5rem;
+}
+</style>
+
+{% endblock %} 

@@ -1,0 +1,1262 @@
+{% extends "dashboard_base.html" %}
+{% block dashboard_content %}
+<style>
+  .progress-tracker-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  .header-section {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .header-section h1 {
+    font-size: 2.5rem;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+  }
+
+  .header-section p {
+    color: #7f8c8d;
+    font-size: 1.1rem;
+    max-width: 700px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  .progress-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 25px;
+  }
+
+  .progress-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.35s cubic-bezier(0.4,0,0.2,1), box-shadow 0.35s cubic-bezier(0.4,0,0.2,1), background 0.3s, transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    position: relative;
+    border: 2px solid transparent;
+  }
+
+  /* Subject-specific border colors on hover/focus */
+  .progress-card:hover,
+  .progress-card:focus {
+    border: 2px solid #37b3ba;
+    box-shadow: 0 0 0 2px #d6e0ff;
+    background: #fafdff;
+    z-index: 2;
+    transform: scale(1.035);
+  }
+  .progress-card:hover[data-subject*="Math"],
+  .progress-card:focus[data-subject*="Math"] { border-color: #3498db; }
+  .progress-card:hover[data-subject*="Geo"],
+  .progress-card:focus[data-subject*="Geo"] { border-color: #2ecc71; }
+  .progress-card:hover[data-subject*="Science"],
+  .progress-card:focus[data-subject*="Science"] { border-color: #e74c3c; }
+  .progress-card:hover[data-subject*="History"],
+  .progress-card:focus[data-subject*="History"] { border-color: #f39c12; }
+
+  /* Remove .active border logic if not needed */
+  .progress-card.active {
+    /* No border, handled by hover/focus now */
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0 0 15px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .progress-card h3 {
+    margin: 0;
+    font-size: 1.6rem;
+    color: #37b3ba;
+  }
+
+  .total-episodes-header {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .total-episodes-header span {
+    font-size: 1.2rem;
+    color: #7f8c8d;
+  }
+
+  .total-episodes-header strong {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2c3e50;
+  }
+
+  .stats-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 15px;
+  }
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.95rem;
+    color: #555;
+    cursor: pointer;
+  }
+
+  .stat-icon {
+    margin-right: 10px;
+    font-size: 1.1rem;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f5f9ff;
+  }
+
+  .stat-icon--approved {
+    background-color: #2ecc71 !important;
+    color: white !important;
+  }
+
+  .remaining-stat-container .stat-icon {
+    background-color: #37b3ba;
+    color: white;
+    width: 32px;
+    height: 32px;
+    font-size: 1.2rem;
+  }
+
+  .stat-icon .fa-search { color: #f1c40f; }
+  .stat-icon .fa-pen { color: #e74c3c; }
+  .stat-icon .fa-gear { color: #3498db; }
+  .stat-icon .fa-film { color: #7f8c8d; }
+
+  .remaining-stat-container {
+    background-color: #f6f3f3db;
+    padding: 12px 18px;
+    margin: 12px auto 0;
+    width: fit-content;
+    border-radius: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+  }
+
+  .remaining-stat-text {
+    font-size: 1rem;
+    font-weight: normal;
+    color: #495057;
+    display: flex;
+    align-items: center;
+  }
+
+  .remaining-stat-number {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #343a40;
+  }
+
+  .stat-value {
+    font-weight: 600;
+    padding-left: 10px;
+    color: #2c3e50;
+  }
+
+  .progress-header {
+    display: flex;
+    justify-content: space-between;
+    margin: 20px 0 8px 0;
+    font-size: 0.9rem;
+    color: #7f8c8d;
+  }
+
+  .progress-bar-container {
+    width: 100%;
+    background-color: #f1f5f9;
+    border-radius: 50px;
+    height: 24px;
+    overflow: hidden;
+    position: relative;
+    margin-top: 20px;
+  }
+
+  .progress-bar {
+    height: 100%;
+    position: relative;
+    border-radius: 50px;
+    width: 0;
+    transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(90deg, #3498db, #2980b9);
+  }
+
+  .progress-bar::after {
+    content: attr(data-progress) '%';
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: white;
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+
+  .progress-bar.green {
+    background: linear-gradient(90deg, #2ecc71, #27ae60);
+  }
+  
+  .progress-bar.yellow {
+    background: linear-gradient(90deg, #f1c40f, #e67e22);
+  }
+  
+  .progress-bar.red {
+    background: linear-gradient(90deg, #e74c3c, #c0392b);
+  }
+
+  .progress-label {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    margin-top: 5px;
+    text-align: right;
+    font-style: italic;
+  }
+
+  .progress-card.in-view .progress-bar {
+    width: var(--progress-width);
+  }
+
+  /* Modal Styles */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6);
+  }
+
+  .modal-content {
+    background-color: #fefefe;
+    margin: 8% auto;
+    padding: 0;
+    border: none;
+    width: 80%;
+    max-width: 800px;
+    border-radius: 12px;
+    position: relative;
+    box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+    overflow: hidden;
+  }
+
+  .close-button {
+    color: #fff;
+    opacity: 0.8;
+    position: absolute;
+    top: 18px;
+    right: 25px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+  }
+
+  .close-button:hover {
+    opacity: 1;
+  }
+  
+  #modal-title {
+    margin: 0;
+    padding: 20px 25px;
+    color: #fff;
+    font-size: 1.6rem;
+    background-color: #37b3ba;
+  }
+
+  #modal-body {
+    padding: 25px;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  #modal-body table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  #modal-body th, #modal-body td {
+    border: none;
+    border-bottom: 1px solid #ddd;
+    padding: 12px 15px;
+    text-align: left;
+  }
+
+  #modal-body th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #343a40;
+  }
+
+  #modal-body tbody tr:nth-of-type(even) {
+    background-color: #f9f9f9;
+  }
+
+  #modal-body tbody tr:hover {
+    background-color: #f1f1f1;
+  }
+
+  .modal.editor-view .modal-content {
+    max-width: 600px;
+  }
+
+  .editor-modal-header {
+    display: flex;
+    align-items: center;
+    padding: 20px 25px;
+    border-bottom: 1px solid #e9ecef;
+  }
+  
+  .editor-modal-header img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin-right: 15px;
+    object-fit: cover;
+  }
+
+  .editor-modal-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #333;
+  }
+
+  .editor-task-list {
+    padding: 0;
+    margin: 0;
+    list-style-type: none;
+  }
+
+  .editor-task-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 25px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s ease;
+  }
+
+  .editor-task-item:last-child {
+    border-bottom: none;
+  }
+
+  .editor-task-item:hover {
+    background-color: #f9f9f9;
+  }
+
+  .task-episode {
+    font-weight: 600;
+    color: #444;
+  }
+
+  .task-status {
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: white;
+    background-color: #95a5a6;
+  }
+
+  .task-status-approved { background-color: #2ecc71; }
+  .task-status-under-review { background-color: #f1c40f; }
+  .task-status-pending { background-color: #e74c3c; }
+  .task-status-ongoing { background-color: #3498db; }
+  .task-status-assigned { background-color: #34495e; }
+
+  .loader {
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #3498db;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .editor-info {
+    display: flex;
+    align-items: center;
+  }
+
+  .avatar-stack {
+    display: flex;
+    padding-left: 10px;
+  }
+
+  .avatar-stack .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid white;
+    margin-left: -10px;
+    object-fit: cover;
+    transition: transform 0.2s ease;
+  }
+
+  .avatar-stack .avatar:hover {
+    transform: translateY(-3px);
+  }
+
+  .card-tooltip {
+    position: absolute;
+    background-color: #333;
+    color: #fff;
+    padding: 7px 16px;
+    border-radius: 7px;
+    z-index: 1001;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    white-space: nowrap;
+    font-size: 0.95rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s cubic-bezier(0.4,0,0.2,1), transform 0.25s cubic-bezier(0.4,0,0.2,1);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+  }
+  .card-tooltip.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .card-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    border: 6px solid transparent;
+    border-top-color: #333;
+    transform: translateX(-50%);
+  }
+
+  /* Overall tracker styles */
+  .overall-tracker-container {
+    max-width: 700px;
+    margin: 0 auto 2.5rem auto;
+    padding: 1.5rem 2rem 1.2rem 2rem;
+    background: #fafdff;
+    border-radius: 16px;
+    box-shadow: 0 4px 18px rgba(55,179,186,0.07);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 2px solid #37b3ba;
+    position: relative;
+  }
+  .overall-tracker-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.5px;
+  }
+  .overall-tracker-stats {
+    color: #7f8c8d;
+    font-size: 1.1rem;
+    margin-bottom: 0.7rem;
+  }
+  .overall-progress-bar-container {
+    width: 100%;
+    background: #f1f5f9;
+    border-radius: 50px;
+    height: 28px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 2px 8px rgba(55,179,186,0.07);
+  }
+  .overall-progress-bar {
+    height: 100%;
+    border-radius: 50px;
+    width: 0;
+    transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+  }
+  .overall-progress-bar.green {
+    background: linear-gradient(90deg, #2ecc71, #27ae60);
+  }
+  .overall-progress-bar.yellow {
+    background: linear-gradient(90deg, #f1c40f, #e67e22);
+  }
+  .overall-progress-bar.red {
+    background: linear-gradient(90deg, #e74c3c, #c0392b);
+  }
+  .overall-progress-bar::after {
+    content: attr(data-progress) '%';
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: white;
+    font-size: 1rem;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .overall-progress-label {
+    font-size: 1rem;
+    color: #37b3ba;
+    margin-top: 2px;
+    text-align: right;
+    font-style: italic;
+    width: 100%;
+  }
+
+  /* Add this for overall progress bar animation */
+  .overall-tracker-container.in-view .overall-progress-bar {
+    width: var(--progress-width);
+  }
+
+  /* New styles for filter controls */
+  .filter-controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .filter-input,
+  .sort-select {
+    padding: 12px 18px;
+    border: 1px solid #c9d0d6;
+    border-radius: 8px;
+    font-size: 1rem;
+    color: #34495e;
+    width: 100%;
+    max-width: 250px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    transition: border-color 0.3s, box-shadow 0.3s, background-color 0.3s;
+    background-color: white;
+    position: relative;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+
+  .sort-select {
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%2334495e" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+    cursor: pointer;
+  }
+
+  .filter-input:hover,
+  .sort-select:hover {
+    border-color: #aebfd0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+
+  .filter-input:focus,
+  .sort-select:focus {
+    border-color: #37b3ba;
+    box-shadow: 0 0 0 3px rgba(55,179,186,0.25);
+    outline: none;
+  }
+
+  .filter-input::placeholder {
+    color: #999;
+  }
+
+  .last-updated-text {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    text-align: right;
+    margin-top: 15px;
+    font-style: italic;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+  }
+
+  .modal-body p {
+    font-size: 1rem;
+    color: #7f8c8d;
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  /*
+    The conflicting ".progress-bar-inner" styles have been removed from here
+    to ensure consistent animation speed.
+  */
+
+  /* Add new styles for progress details */
+  .view-more-link {
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .view-more-btn {
+    color: #37b3ba;
+    text-decoration: none;
+    font-size: 0.9rem;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+  }
+
+  .view-more-btn:hover {
+    opacity: 1;
+    text-decoration: underline;
+  }
+
+  .progress-section {
+    margin-bottom: 25px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+  }
+
+  .progress-section h3 {
+    margin: 0 0 15px 0;
+    color: #2c3e50;
+    font-size: 1.1rem;
+  }
+
+  .progress-stats {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: #7f8c8d;
+    text-align: right;
+  }
+
+  #progress-details-modal .modal-content {
+    max-width: 600px;
+  }
+
+  #progress-details-modal .modal-header {
+    background-color: #37b3ba;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 12px 12px 0 0;
+  }
+
+  #progress-details-modal .modal-header h2 {
+    margin: 0;
+    font-size: 1.4rem;
+  }
+
+  #progress-details-modal .modal-body {
+    padding: 20px;
+  }
+
+  #progress-details-modal .progress-bar-container {
+    width: 100%;
+    background-color: #f1f5f9;
+    border-radius: 50px;
+    height: 24px;
+    overflow: hidden;
+    margin: 15px 0;
+    position: relative;
+  }
+
+  #progress-details-modal .progress-bar {
+    height: 100%;
+    position: relative;
+    border-radius: 50px;
+    width: 0;
+    transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    background: linear-gradient(90deg, #3498db, #2980b9);
+  }
+
+  #progress-details-modal .progress-bar::after {
+    content: attr(data-progress) '%';
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: white;
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+
+  #progress-details-modal .progress-bar.green {
+    background: linear-gradient(90deg, #2ecc71, #27ae60);
+  }
+
+  #progress-details-modal .progress-bar.yellow {
+    background: linear-gradient(90deg, #f1c40f, #e67e22);
+  }
+
+  #progress-details-modal .progress-bar.red {
+    background: linear-gradient(90deg, #e74c3c, #c0392b);
+  }
+
+  /* Modal Styles */
+  #progress-modal .modal-content-main {
+    background-color: #f7f9fc;
+  }
+
+  #progress-modal .modal-header {
+    background: #37b3ba;
+    color: white;
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  #progress-modal-title {
+    margin: 0;
+    font-size: 1.5rem;
+    color: white; /* Ensure text is white */
+  }
+
+  .modal-tabs {
+    display: flex;
+    background-color: #eef3f7;
+  }
+
+  @media screen and (max-width: 768px) {
+    .progress-grid {
+      grid-template-columns: 1fr; /* Stack cards */
+    }
+
+    .modal-table th:nth-child(1), /* Subject */
+    .modal-table td:nth-child(1),
+    .modal-table th:nth-child(3), /* Chapter */
+    .modal-table td:nth-child(3),
+    .modal-table th:nth-child(5), /* Date Assigned */
+    .modal-table td:nth-child(5) {
+      display: none;
+    }
+
+    .modal-table .editor-name-in-table {
+      display: none; /* Hide editor name, show only avatar */
+    }
+
+    .progress-bar-container {
+      height: 20px; /* Make progress bar smaller */
+    }
+
+    .progress-bar::after {
+      font-size: 0.8rem; /* Adjust font size for smaller bar */
+    }
+  }
+</style>
+
+<div class="progress-tracker-container">
+  
+  <div class="header-section">
+    <h1>Subject Production Tracker</h1>
+    <p>An overview of video production status for all subjects, from recording to final approval.</p>
+
+    <div class="filter-controls">
+      <input type="text" id="subject-filter" placeholder="Filter subjects..." class="filter-input">
+      <input type="text" id="editor-filter" placeholder="Filter by editor..." class="filter-input">
+    </div>
+  </div>
+
+  <div class="overall-tracker-container">
+    <div class="overall-tracker-title">Overall Production Progress</div>
+    <div class="overall-tracker-stats">
+      {{ overall_total_approved }} of {{ overall_total_episodes }} episodes approved
+    </div>
+    <div class="overall-progress-bar-container">
+      <div class="overall-progress-bar {{ overall_color_class }}" data-progress="{{ overall_progress_percentage|round(1) }}" style="--progress-width: {{ overall_progress_percentage|round(1) }}%"></div>
+    </div>
+    <div class="overall-progress-label">
+      <strong>{{ overall_progress_percentage|round(1) }}%</strong> complete
+    </div>
+  </div>
+  
+  <div class="progress-grid">
+    {% for subject in progress_data %}
+    <div class="progress-card" data-subject="{{ subject.subject }}">
+      <div class="card-header">
+        <h3>{{ subject.subject }}</h3>
+        {% if subject.editors %}
+        <div class="editor-info">
+          <div class="avatar-stack">
+            {% for editor in subject.editors %}
+            <img class="avatar" data-editor-id="{{ editor.id }}" data-subject="{{ subject.subject }}" src="{{ url_for('static', filename=editor.pic) }}" alt="{{ editor.name }}" title="{{ editor.name }}">
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      
+      <div class="total-episodes-header">
+        <span>Total Episodes:</span>
+        <strong>{{ subject.total_episodes }}</strong>
+      </div>
+      
+      <div class="stats-container">
+        <div class="stat-item" data-subject="{{ subject.subject }}" data-status="approved">
+          <span class="stat-icon stat-icon--approved"><i class="fa-solid fa-check"></i></span>
+          Approved
+          <span class="stat-value">{{ subject.approved }}</span>
+        </div>
+        
+        <div class="stat-item" data-subject="{{ subject.subject }}" data-status="reviewing">
+          <span class="stat-icon"><i class="fa-solid fa-search"></i></span>
+          Reviewing
+          <span class="stat-value">{{ subject.reviewing }}</span>
+        </div>
+        
+        <div class="stat-item" data-subject="{{ subject.subject }}" data-status="pending">
+          <span class="stat-icon"><i class="fa-solid fa-pen"></i></span>
+          Re-editing
+          <span class="stat-value">{{ subject.pending }}</span>
+        </div>
+        
+        <div class="stat-item" data-subject="{{ subject.subject }}" data-status="ongoing">
+          <span class="stat-icon"><i class="fa-solid fa-gear"></i></span>
+          New-edit
+          <span class="stat-value">{{ subject.ongoing }}</span>
+        </div>
+        
+        <div class="stat-item" data-subject="{{ subject.subject }}" data-status="raw_videos">
+          <span class="stat-icon"><i class="fa-solid fa-film"></i></span>
+          Raw Videos
+          <span class="stat-value">{{ subject.raw_videos }}</span>
+        </div>
+      </div>
+      
+      <div class="remaining-stat-container" data-subject="{{ subject.subject }}" data-status="remaining">
+        <div class="remaining-stat-text">
+          <span class="stat-icon"><i class="fa-solid fa-hourglass-half"></i></span>
+          Remaining
+        </div>
+        <span class="remaining-stat-number">{{ subject.remaining }}</span>
+      </div>
+
+      <div class="progress-header">
+        <span>Completion</span>
+        <span>{{ subject.progress }}%</span>
+      </div>
+      
+      <div class="progress-bar-container">
+        <div class="progress-bar {{ subject.color_class }}" 
+             data-progress="{{ subject.progress }}"
+             style="--progress-width: {{ subject.progress }}%">
+        </div>
+      </div>
+      
+      <div class="progress-label">
+        {% if subject.progress == 100 %}
+          All episodes finished! 🎉
+        {% elif subject.progress > 75 %}
+          Nearing completion!
+        {% elif subject.progress > 50 %}
+          Good progress!
+        {% elif subject.progress > 25 %}
+          Production underway.
+        {% else %}
+          Awaiting recordings.
+        {% endif %}
+      </div>
+      
+      <div class="view-more-link">
+        <a href="#" class="view-more-btn" data-subject="{{ subject.subject }}">View More</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div id="progress-details-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="progress-modal-title">Detailed Progress</h2>
+            <span class="close-button">&times;</span>
+        </div>
+        <div id="progress-modal-body" class="modal-body">
+            </div>
+    </div>
+</div>
+
+<div id="details-modal" class="modal">
+  <div class="modal-content">
+    <div id="modal-header">
+      <h2 id="modal-title"></h2>
+      <span class="close-button">&times;</span>
+    </div>
+    <div id="modal-body">
+      </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const progressCards = document.querySelectorAll('.progress-card');
+    const overallTrackerContainer = document.querySelector('.overall-tracker-container');
+    
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-view');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    progressCards.forEach(card => {
+      observer.observe(card);
+    });
+
+    if (overallTrackerContainer) {
+      observer.observe(overallTrackerContainer);
+    }
+
+    // Filtering logic
+    const subjectFilterInput = document.getElementById('subject-filter');
+    const editorFilterInput = document.getElementById('editor-filter');
+    const progressGrid = document.querySelector('.progress-grid');
+
+    function applyFilters() {
+      const subjectFilterText = subjectFilterInput.value.toLowerCase();
+      const editorFilterText = editorFilterInput.value.toLowerCase();
+
+      progressCards.forEach(card => {
+        const subjectName = card.dataset.subject.toLowerCase();
+        const editorNames = Array.from(card.querySelectorAll('.avatar')).map(avatar => avatar.alt.toLowerCase());
+
+        const matchesSubject = subjectName.includes(subjectFilterText);
+        const matchesEditor = editorNames.some(name => name.includes(editorFilterText));
+        
+        const showCard = (matchesSubject || subjectFilterText === '') && (matchesEditor || editorFilterText === '');
+
+        if (showCard) {
+          card.style.display = 'flex';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    subjectFilterInput.addEventListener('keyup', applyFilters);
+    editorFilterInput.addEventListener('keyup', applyFilters);
+    applyFilters();
+
+    const modal = document.getElementById('details-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+    const closeButton = document.querySelector('.close-button');
+
+    let activeCard = null;
+
+    function activateCard(card) {
+      document.querySelectorAll('.progress-card').forEach(c => {
+        c.classList.remove('active');
+      });
+      card.classList.add('active');
+      activeCard = card;
+    }
+
+    document.querySelectorAll('.stat-item, .remaining-stat-container').forEach(item => {
+      item.addEventListener('click', async function() {
+        const card = this.closest('.progress-card');
+        activateCard(card);
+        
+        const subject = this.dataset.subject;
+        let status = this.dataset.status;
+        
+        if (!subject || !status) return;
+
+        let statusText = status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
+        if (status === 'ongoing') {
+          statusText = 'New-edit';
+        } else if (status === 'pending') {
+          statusText = 'Re-editing';
+        }
+
+        modalTitle.textContent = 'Loading...';
+        modalBody.innerHTML = '<div class="loader"></div>';
+        modal.style.display = 'block';
+
+        try {
+          const response = await fetch(`/api/subject_details?subject=${encodeURIComponent(subject)}&status=${encodeURIComponent(status)}`);
+          const data = await response.json();
+
+          if (response.ok) {
+            modalTitle.textContent = `${subject} - ${statusText}`;
+            
+            if (data.results.length === 0) {
+              modalBody.innerHTML = '<p>No items found for this category.</p>';
+              return;
+            }
+
+            let tableHTML = '<table><thead><tr>';
+            data.headers.forEach(header => {
+              tableHTML += `<th>${header}</th>`;
+            });
+            tableHTML += '</tr></thead><tbody>';
+
+            data.results.forEach(row => {
+              tableHTML += '<tr>';
+              data.keys.forEach(key => {
+                const cellData = row[key];
+                if (key === 'editor' && typeof cellData === 'object' && cellData !== null) {
+                  tableHTML += `<td>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <img src="/static/${cellData.pic}" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">
+                      <span>${cellData.name}</span>
+                    </div>
+                  </td>`;
+                } else {
+                  tableHTML += `<td>${cellData || 'N/A'}</td>`;
+                }
+              });
+              tableHTML += '</tr>';
+            });
+
+            tableHTML += '</tbody></table>';
+            modalBody.innerHTML = tableHTML;
+          } else {
+            modalTitle.textContent = 'Error';
+            modalBody.innerHTML = `<p>${data.error || 'Failed to load details.'}</p>`;
+          }
+        } catch (error) {
+          modalTitle.textContent = 'Error';
+          modalBody.innerHTML = `<p>An error occurred: ${error.message}</p>`;
+        }
+      });
+    });
+
+    document.querySelectorAll('.progress-card').forEach(card => {
+      card.addEventListener('click', function(e) {
+        if (e.target === this) {
+          activateCard(this);
+        }
+      });
+    });
+
+    document.querySelectorAll('.avatar').forEach(avatar => {
+      avatar.addEventListener('click', async function(e) {
+        e.stopPropagation();
+        const card = this.closest('.progress-card');
+        activateCard(card);
+        
+        const editorId = this.dataset.editorId;
+        const subject = this.dataset.subject;
+        const editorPic = this.src;
+
+        if (!editorId || !subject) return;
+
+        modal.classList.add('editor-view');
+        modalTitle.style.display = 'none';
+        modalBody.innerHTML = '<div class="loader"></div>';
+        modal.style.display = 'block';
+
+        try {
+          const response = await fetch(`/api/editor_subject_details?subject=${encodeURIComponent(subject)}&editor_id=${editorId}`);
+          const data = await response.json();
+
+          if (response.ok) {
+            let newHeaderHTML = `
+              <div class="editor-modal-header">
+                <img src="${editorPic}" alt="${data.editor_name}">
+                <h3>${data.editor_name}'s Tasks in ${subject}</h3>
+              </div>
+            `;
+            
+            if (data.results.length === 0) {
+              modalBody.innerHTML = newHeaderHTML + '<p style="padding: 25px;">No work found for this editor in this subject.</p>';
+              return;
+            }
+
+            let listHTML = '<ul class="editor-task-list">';
+            data.results.forEach(row => {
+              const statusClass = 'task-status-' + row.status.toLowerCase().replace(/ /g, '-');
+              listHTML += `
+                <li class="editor-task-item">
+                  <span class="task-episode">Episode: ${row.episode}</span>
+                  <span class="task-status ${statusClass}">${row.status}</span>
+                </li>
+              `;
+            });
+            listHTML += '</ul>';
+            
+            modalBody.innerHTML = newHeaderHTML + listHTML;
+          } else {
+            modal.classList.remove('editor-view');
+            modalTitle.style.display = 'block';
+            modalTitle.textContent = 'Error';
+            modalBody.innerHTML = `<p>${data.error || 'Failed to load details.'}</p>`;
+          }
+        } catch (error) {
+          modal.classList.remove('editor-view');
+          modalTitle.style.display = 'block';
+          modalTitle.textContent = 'Error';
+          modalBody.innerHTML = `<p>An error occurred: ${error.message}</p>`;
+        }
+      });
+    });
+
+    closeButton.addEventListener('click', function() {
+      modal.classList.remove('editor-view');
+      modalTitle.style.display = 'block';
+      modal.style.display = 'none';
+    });
+
+    window.addEventListener('click', function(event) {
+      if (event.target == modal) {
+        modal.classList.remove('editor-view');
+        modalTitle.style.display = 'block';
+        modal.style.display = 'none';
+      }
+    });
+
+    document.querySelectorAll('.progress-card').forEach(card => {
+      card.addEventListener('mouseenter', function() {
+        let subject = this.querySelector('h3')?.textContent || 'Subject';
+        let tooltip = document.createElement('div');
+        tooltip.className = 'card-tooltip';
+        tooltip.innerText = `Details for ${subject}`;
+        this.appendChild(tooltip);
+        setTimeout(() => tooltip.classList.add('visible'), 10);
+      });
+      card.addEventListener('mouseleave', function() {
+        let tooltip = this.querySelector('.card-tooltip');
+        if (tooltip) {
+          tooltip.classList.remove('visible');
+          setTimeout(() => tooltip && tooltip.remove(), 250);
+        }
+      });
+      card.addEventListener('focus', function() {
+        let subject = this.querySelector('h3')?.textContent || 'Subject';
+        let tooltip = document.createElement('div');
+        tooltip.className = 'card-tooltip';
+        tooltip.innerText = `Details for ${subject}`;
+        this.appendChild(tooltip);
+        setTimeout(() => tooltip.classList.add('visible'), 10);
+      });
+      card.addEventListener('blur', function() {
+        let tooltip = this.querySelector('.card-tooltip');
+        if (tooltip) {
+          tooltip.classList.remove('visible');
+          setTimeout(() => tooltip && tooltip.remove(), 250);
+        }
+      });
+      card.setAttribute('tabindex', '0');
+    });
+
+    const progressDetailsModal = document.getElementById('progress-details-modal');
+    const progressModalTitle = document.getElementById('progress-modal-title');
+    const progressModalBody = document.getElementById('progress-modal-body');
+    const progressCloseButton = progressDetailsModal.querySelector('.close-button');
+
+    document.querySelectorAll('.view-more-btn').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const subject = this.dataset.subject;
+            
+            progressModalTitle.textContent = `Detailed Progress - ${subject}`;
+            progressModalBody.innerHTML = '<div class="loader"></div>';
+            progressDetailsModal.style.display = 'block';
+
+            try {
+                const response = await fetch(`/api/subject_progress_details?subject=${encodeURIComponent(subject)}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    let html = `
+                        <div class="progress-section">
+                            <h3>Approved Videos Progress</h3>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar ${data.approved_progress.color_class}" 
+                                     data-progress="${data.approved_progress.percentage}"
+                                     style="--progress-width: ${data.approved_progress.percentage}%">
+                                </div>
+                            </div>
+                            <div class="progress-stats">
+                                ${data.approved_progress.count} of ${data.approved_progress.total} videos approved
+                            </div>
+                        </div>
+                        
+                        <div class="progress-section">
+                            <h3>Shooting Progress</h3>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar ${data.shooting_progress.color_class}" 
+                                     data-progress="${data.shooting_progress.percentage}"
+                                     style="--progress-width: ${data.shooting_progress.percentage}%">
+                                </div>
+                            </div>
+                            <div class="progress-stats">
+                                ${data.shooting_progress.count} of ${data.shooting_progress.total} videos shot
+                            </div>
+                        </div>
+
+                        <div class="progress-section">
+                            <h3>Assigned Raw Videos</h3>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar ${data.assigned_progress.color_class}" 
+                                     data-progress="${data.assigned_progress.percentage}"
+                                     style="--progress-width: ${data.assigned_progress.percentage}%">
+                                </div>
+                            </div>
+                            <div class="progress-stats">
+                                ${data.assigned_progress.count} of ${data.assigned_progress.total} raw videos assigned
+                            </div>
+                        </div>
+                    `;
+                    progressModalBody.innerHTML = html;
+
+                    setTimeout(() => {
+                        const modalProgressBars = progressModalBody.querySelectorAll('.progress-bar');
+                        modalProgressBars.forEach(bar => {
+                            const progressWidth = bar.style.getPropertyValue('--progress-width');
+                            bar.style.width = progressWidth;
+                        });
+                    }, 100);
+                    
+                } else {
+                    progressModalBody.innerHTML = `<p>${data.error || 'Failed to load progress details.'}</p>`;
+                }
+            } catch (error) {
+                progressModalBody.innerHTML = `<p>An error occurred: ${error.message}</p>`;
+            }
+        });
+    });
+
+    progressCloseButton.addEventListener('click', function() {
+        progressDetailsModal.style.display = 'none';
+    });
+
+    window.addEventListener('click', function(event) {
+        if (event.target == progressDetailsModal) {
+            progressDetailsModal.style.display = 'none';
+        }
+    });
+  });
+</script>
+{% endblock %}

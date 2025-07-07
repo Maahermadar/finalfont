@@ -1,0 +1,2007 @@
+{% extends "dashboard_base.html" %}
+{% block dashboard_content %}
+<div class="additions-container">
+    <!-- Flash Messages -->
+    <div class="additions-header">
+        <div class="header-content">
+            <div class="header-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                </svg>
+            </div>
+            <div>
+                <h1>Manage Resources</h1>
+                <p class="subtitle">Add and manage subjects, supervisors, and editors</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="dynamic-flash-container" class="flash-messages-container" data-messages='{{ get_flashed_messages(with_categories=true) | tojson | safe }}'></div>
+
+    <div class="additions-grid">
+        <!-- Add Subject Card -->
+        <div class="addition-card">
+            <div class="card-header">
+                <svg class="card-icon" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M12,3L1,9L12,15L21,10.09V17H23V9M5,13.18V17.18L12,21L19,17.18V13.18L12,17L5,13.18Z" />
+                </svg>
+                <h3>Subjects</h3>
+            </div>
+            <form method="POST" action="{{ url_for('additions') }}" class="addition-form">
+                <input type="hidden" name="form_type" value="add_subject">
+                <div class="form-group">
+                    <label for="subject_name">Subject Name</label>
+                    <input type="text" id="subject_name" name="subject_name" required>
+                </div>
+                <button type="submit" class="btn-submit">
+                    <svg viewBox="0 0 24 24" width="18" height="18">
+                        <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+                    </svg>
+                    Add Subject
+                </button>
+            </form>
+            <div class="existing-items">
+                <h4>Existing Subjects</h4>
+                {% if subjects %}
+                <ul class="item-list">
+                    {% for subject in subjects[:3] %}
+                        <li data-id="{{ subject.id }}" data-type="subject">
+                            <div class="subject-name-group">
+                                <span>{{ subject.name }}</span>
+                            </div>
+                            <div class="item-actions">
+                                <button class="edit-btn" data-id="{{ subject.id }}" data-type="subject" data-name="{{ subject.name }}" data-supervisor-id="{{ subject.supervisor.id if subject.supervisor else '' }}" title="Edit subject">
+                                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.13,5.12L18.88,8.87M3,17.25V21H6.75L17.81,9.94L14.06,6.19L3,17.25Z" /></svg>
+                                </button>
+                                <button class="delete-btn" data-id="{{ subject.id }}" data-type="subject" title="Delete subject">
+                                    <svg viewBox="0 0 24 24" width="16" height="16">
+                                        <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+                                    </svg>
+                                </button>
+                                {% if not subject.supervisor %}
+                                <button class="link-btn" data-id="{{ subject.id }}" data-type="subject" title="Link supervisor">
+                                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C7.22,12.88 7.22,9.71 9.17,7.76L11.3,5.64C13.25,3.69 16.41,3.69 18.36,5.64C20.31,7.59 20.31,10.75 18.36,12.7L17.29,11.64C18.45,10.48 18.45,8.61 17.29,7.45C16.13,6.29 14.26,6.29 13.1,7.45L10.97,9.58C10.05,10.5 10.05,12.05 10.97,12.97L11.3,13.29L10.59,13.41M14.83,9.17C16.78,11.12 16.78,14.29 14.83,16.24L12.7,18.36C10.75,20.31 7.59,20.31 5.64,18.36C3.69,16.41 3.69,13.25 5.64,11.3L6.71,12.36C5.55,13.52 5.55,15.39 6.71,16.55C7.87,17.71 9.74,17.71 10.9,16.55L13.03,14.42C13.95,13.5 13.95,11.95 13.03,11.03L12.7,10.71L14.83,9.17Z"/></svg>
+                                </button>
+                                {% else %}
+                                    <span class="linked-indicator" data-tooltip="Linked to {{ subject.supervisor.name }}">
+                                        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M9,20.42L2.79,14.21L4.21,12.79L9,17.58L19.79,6.79L21.21,8.21L9,20.42Z"/></svg>
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+                {% if subjects|length > 3 %}
+                    <button class="view-more-btn" data-type="subject" data-modal-target="#modal-subjects">View More ({{ subjects|length - 3 }})</button>
+                {% endif %}
+                {% else %}
+                <div class="empty-state small">
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                        <path fill="currentColor" d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+                    </svg>
+                    <p>No subjects found</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Add Supervisor Card -->
+        <div class="addition-card">
+            <div class="card-header">
+                <svg class="card-icon" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
+                </svg>
+                <h3>Supervisors</h3>
+            </div>
+            <form method="POST" action="{{ url_for('additions') }}" enctype="multipart/form-data" class="addition-form">
+                <input type="hidden" name="form_type" value="add_supervisor">
+                <div class="form-group">
+                    <label for="supervisor_name">Supervisor Name</label>
+                    <input type="text" id="supervisor_name" name="supervisor_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="supervisor_avatar_file">Avatar</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="supervisor_avatar_file" name="supervisor_avatar_file" accept="image/*">
+                        <label for="supervisor_avatar_file" class="file-input-label">
+                            <svg viewBox="0 0 24 24" width="18" height="18">
+                                <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                            </svg>
+                            <span id="supervisor-file-name">Choose file</span>
+                        </label>
+                        <div class="file-actions" id="supervisor-file-actions" style="display: none;">
+                            <span class="file-success">
+                                <svg viewBox="0 0 24 24" width="16" height="16">
+                                    <path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
+                                </svg>
+                            </span>
+                            <button type="button" class="file-replace" data-target="supervisor_avatar_file">Replace</button>
+                            <button type="button" class="file-remove" data-target="supervisor_avatar_file">
+                                <svg viewBox="0 0 24 24" width="16" height="16">
+                                    <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn-submit btn-submit-add-supervisor">
+                    <svg viewBox="0 0 24 24" width="18" height="18">
+                        <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+                    </svg>
+                    Add Supervisor
+                </button>
+            </form>
+            <div class="existing-items">
+                <h4>Existing Supervisors</h4>
+                {% if supervisors %}
+                <ul class="item-list">
+                    {% for supervisor in supervisors[:3] %}
+                        <li class="item-with-avatar" data-id="{{ supervisor.id }}" data-type="supervisor">
+                            <div class="avatar-name-group">
+                                <img src="{{ url_for('serve_profile_image', filename=supervisor.profile_picture or 'default.png') }}" alt="Avatar">
+                                <span>{{ supervisor.name }}</span>
+                            </div>
+                            <div class="item-actions">
+                                <button class="edit-btn" data-id="{{ supervisor.id }}" data-type="supervisor" data-name="{{ supervisor.name }}" data-avatar="{{ url_for('serve_profile_image', filename=supervisor.profile_picture or 'default.png') }}" title="Edit supervisor">
+                                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.13,5.12L18.88,8.87M3,17.25V21H6.75L17.81,9.94L14.06,6.19L3,17.25Z" /></svg>
+                                </button>
+                                <button class="delete-btn" data-id="{{ supervisor.id }}" data-type="supervisor" title="Delete supervisor">
+                                    <svg viewBox="0 0 24 24" width="16" height="16">
+                                        <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+                {% if supervisors|length > 3 %}
+                    <button class="view-more-btn" data-type="supervisor" data-modal-target="#modal-supervisors">View More ({{ supervisors|length - 3 }})</button>
+                {% endif %}
+                {% else %}
+                <div class="empty-state small">
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                        <path fill="currentColor" d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+                    </svg>
+                    <p>No supervisors found</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Add Editor Card -->
+        <div class="addition-card">
+            <div class="card-header">
+                <svg class="card-icon" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
+                </svg>
+                <h3>Editors</h3>
+            </div>
+            <form method="POST" action="{{ url_for('additions') }}" enctype="multipart/form-data" class="addition-form">
+                <input type="hidden" name="form_type" value="add_editor">
+                <div class="form-group">
+                    <label for="editor_name">Editor Name</label>
+                    <input type="text" id="editor_name" name="editor_name" required>
+                </div>
+                <div class="form-group">
+                    <label for="avatar_file">Avatar</label>
+                    <div class="file-input-wrapper">
+                        <input type="file" id="avatar_file" name="avatar_file" accept="image/*">
+                        <label for="avatar_file" class="file-input-label">
+                            <svg viewBox="0 0 24 24" width="18" height="18">
+                                <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                            </svg>
+                            <span id="editor-file-name">Choose file</span>
+                        </label>
+                        <div class="file-actions" id="editor-file-actions" style="display: none;">
+                            <span class="file-success">
+                                <svg viewBox="0 0 24 24" width="16" height="16">
+                                    <path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
+                                </svg>
+                            </span>
+                            <button type="button" class="file-replace" data-target="avatar_file">Replace</button>
+                            <button type="button" class="file-remove" data-target="avatar_file">
+                                <svg viewBox="0 0 24 24" width="16" height="16">
+                                    <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn-submit">
+                    <svg viewBox="0 0 24 24" width="18" height="18">
+                        <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+                    </svg>
+                    Add Editor
+                </button>
+            </form>
+            <div class="existing-items">
+                <h4>Existing Editors</h4>
+                {% if editors %}
+                <ul class="item-list">
+                    {% for editor in editors[:3] %}
+                        <li class="item-with-avatar" data-id="{{ editor.id }}" data-type="editor">
+                            <div class="avatar-name-group">
+                                <img src="{{ url_for('serve_profile_image', filename=editor.profile_picture or 'default.png') }}" alt="Avatar">
+                                <span>{{ editor.name }}</span>
+                            </div>
+                            <div class="item-actions">
+                                <button class="edit-btn" data-id="{{ editor.id }}" data-type="editor" data-name="{{ editor.name }}" data-avatar="{{ url_for('serve_profile_image', filename=editor.profile_picture or 'default.png') }}" title="Edit editor">
+                                    <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.13,5.12L18.88,8.87M3,17.25V21H6.75L17.81,9.94L14.06,6.19L3,17.25Z" /></svg>
+                                </button>
+                                <button class="delete-btn" data-id="{{ editor.id }}" data-type="editor" title="Delete editor">
+                                    <svg viewBox="0 0 24 24" width="16" height="16">
+                                        <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+                {% if editors|length > 3 %}
+                    <button class="view-more-btn" data-type="editor" data-modal-target="#modal-editors">View More ({{ editors|length - 3 }})</button>
+                {% endif %}
+                {% else %}
+                <div class="empty-state small">
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                        <path fill="currentColor" d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4Z" />
+                    </svg>
+                    <p>No editors found</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Supervisor Schedule Card - Redesigned -->
+        <div class="addition-card full-width-card">
+            <div class="card-header">
+                <svg class="card-icon" viewBox="0 0 24 24">
+                    <path fill="currentColor" d="M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,12H12V17H17V12Z" />
+                </svg>
+                <h3>Supervisor Schedule</h3>
+                <p class="subtitle">Set when supervisors are available for consultations</p>
+            </div>
+
+            <div class="schedule-form-container">
+                <form method="POST" action="{{ url_for('add_schedule') }}" class="schedule-form">
+                    <div class="form-row">
+                        <!-- Supervisor Select - Improved with avatar preview -->
+                        <div class="form-group supervisor-select-wrapper">
+                            <label for="supervisor_id">Supervisor</label>
+                            <div class="select-with-avatar">
+                                <select id="supervisor_id" name="supervisor_id" required class="custom-select">
+                                    <option value="" disabled selected>Select supervisor</option>
+                                    {% for supervisor in supervisors %}
+                                    <option value="{{ supervisor.id }}" data-avatar="{{ url_for('serve_profile_image', filename=supervisor.profile_picture or 'default.png') }}">
+                                        {{ supervisor.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="selected-avatar">
+                                    <img id="supervisor-avatar-preview" src="" alt="Avatar" class="avatar-preview">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Time Range Picker - Compact design -->
+                        <div class="form-group time-range-group">
+                            <label>Schedule Time</label>
+                            <div class="time-inputs">
+                                <div class="time-input-wrapper">
+                                     <label for="start_time">From</label>
+                                    <input type="time" id="start_time" name="start_time" required class="time-input">
+                                </div>
+                                <div class="time-separator">→</div>
+                                <div class="time-input-wrapper">
+                                    <label for="end_time">To</label>
+                                    <input type="time" id="end_time" name="end_time" required class="time-input">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Days Selection & Submit Button -->
+                    <div class="form-row-flex">
+                        <div class="form-group days-selection-group">
+                            <label>Schedule Days</label>
+                            <div class="days-pills">
+                                {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                                <div class="day-pill">
+                                    <input type="checkbox" id="day-{{ loop.index }}" name="day_of_week" value="{{ day }}" class="day-checkbox">
+                                    <label for="day-{{ loop.index }}" class="day-label">{{ day[:3] }}</label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="form-footer">
+                            <button type="submit" class="btn-submit">
+                                <svg viewBox="0 0 24 24" width="18" height="18">
+                                    <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+                                </svg>
+                                Add Schedule
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Schedule Table - Enhanced -->
+            <div class="schedule-table-container">
+                <div class="table-header">
+                    <h4>Current Schedules</h4>
+                    <div class="table-actions">
+                        <button id="filter-all" class="btn-filter active">All</button>
+                        <button id="filter-today" class="btn-filter">Today</button>
+                    </div>
+                </div>
+                
+                {% if schedules %}
+                <div class="table-responsive">
+                    <table class="schedule-table">
+                        <thead>
+                            <tr>
+                                <th class="supervisor-col">Supervisor</th>
+                                <th class="days-col">Day</th>
+                                <th class="time-col">Time</th>
+                                <th class="actions-col"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="schedule-table-body">
+                            {% for schedule in schedules %}
+                            <tr data-day="{{ schedule.day_of_week }}">
+                                <td class="supervisor-cell">
+                                    <div class="supervisor-info">
+                                        <img src="{{ url_for('serve_profile_image', filename=schedule.supervisor.profile_picture or 'default.png') }}" 
+                                                alt="{{ schedule.supervisor.name }}" class="supervisor-avatar">
+                                        <span>{{ schedule.supervisor.name }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="day-tag">{{ schedule.day_of_week }}</span>
+                                </td>
+                                <td>
+                                    <div class="time-slot">
+                                        {{ schedule.start_time.strftime('%I:%M %p') }} - {{ schedule.end_time.strftime('%I:%M %p') }}
+                                    </div>
+                                </td>
+                                <td>
+                                    <button class="btn-icon delete-schedule-btn" data-id="{{ schedule.id }}" title="Delete schedule">
+                                        <svg viewBox="0 0 24 24" width="16" height="16">
+                                            <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+                                        </svg>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" width="32" height="32">
+                        <path fill="currentColor" d="M19,19H5V8H19M19,3H18V1H16V3H8V1H6V3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3Z" />
+                    </svg>
+                    <p>No schedules found</p>
+                    <small>Add schedules to show supervisors' available times</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals for each type -->
+<div id="modal-subjects" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <h3>All Subjects</h3>
+        <ul class="item-list">
+            {% for subject in subjects %}
+                <li data-id="{{ subject.id }}" data-type="subject">
+                    <div class="subject-name-group">
+                        <span>{{ subject.name }}</span>
+                    </div>
+                    <div class="item-actions">
+                        <button class="edit-btn" data-id="{{ subject.id }}" data-type="subject" data-name="{{ subject.name }}" data-supervisor-id="{{ subject.supervisor.id if subject.supervisor else '' }}" title="Edit subject">
+                            <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.13,5.12L18.88,8.87M3,17.25V21H6.75L17.81,9.94L14.06,6.19L3,17.25Z" /></svg>
+                        </button>
+                        <button class="delete-btn" data-id="{{ subject.id }}" data-type="subject" title="Delete subject">
+                            <svg viewBox="0 0 24 24" width="16" height="16">
+                                <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+                            </svg>
+                        </button>
+                        {% if not subject.supervisor %}
+                        <button class="link-btn" data-id="{{ subject.id }}" data-type="subject" title="Link supervisor">
+                             <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M10.59,13.41C11,13.8 11,14.44 10.59,14.83C10.2,15.22 9.56,15.22 9.17,14.83C7.22,12.88 7.22,9.71 9.17,7.76L11.3,5.64C13.25,3.69 16.41,3.69 18.36,5.64C20.31,7.59 20.31,10.75 18.36,12.7L17.29,11.64C18.45,10.48 18.45,8.61 17.29,7.45C16.13,6.29 14.26,6.29 13.1,7.45L10.97,9.58C10.05,10.5 10.05,12.05 10.97,12.97L11.3,13.29L10.59,13.41M14.83,9.17C16.78,11.12 16.78,14.29 14.83,16.24L12.7,18.36C10.75,20.31 7.59,20.31 5.64,18.36C3.69,16.41 3.69,13.25 5.64,11.3L6.71,12.36C5.55,13.52 5.55,15.39 6.71,16.55C7.87,17.71 9.74,17.71 10.9,16.55L13.03,14.42C13.95,13.5 13.95,11.95 13.03,11.03L12.7,10.71L14.83,9.17Z"/></svg>
+                        </button>
+                        {% else %}
+                            <span class="linked-indicator" data-tooltip="Linked to {{ subject.supervisor.name }}">
+                                <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M9,20.42L2.79,14.21L4.21,12.79L9,17.58L19.79,6.79L21.21,8.21L9,20.42Z"/></svg>
+                            </span>
+                        {% endif %}
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+<div id="modal-supervisors" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <h3>All Supervisors</h3>
+        <ul class="item-list">
+            {% for supervisor in supervisors %}
+                <li class="item-with-avatar" data-id="{{ supervisor.id }}" data-type="supervisor">
+                    <div class="avatar-name-group">
+                        <img src="{{ url_for('serve_profile_image', filename=supervisor.profile_picture or 'default.png') }}" alt="Avatar">
+                        <span>{{ supervisor.name }}</span>
+                    </div>
+                    <div class="item-actions">
+                        <button class="edit-btn" data-id="{{ supervisor.id }}" data-type="supervisor" data-name="{{ supervisor.name }}" data-avatar="{{ url_for('serve_profile_image', filename=supervisor.profile_picture or 'default.png') }}" title="Edit supervisor">
+                            <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.13,5.12L18.88,8.87M3,17.25V21H6.75L17.81,9.94L14.06,6.19L3,17.25Z" /></svg>
+                        </button>
+                        <button class="delete-btn" data-id="{{ supervisor.id }}" data-type="supervisor" title="Delete supervisor">
+                            <svg viewBox="0 0 24 24" width="16" height="16">
+                                <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+                            </svg>
+                        </button>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+<div id="modal-editors" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <h3>All Editors</h3>
+        <ul class="item-list">
+            {% for editor in editors %}
+                <li class="item-with-avatar" data-id="{{ editor.id }}" data-type="editor">
+                    <div class="avatar-name-group">
+                        <img src="{{ url_for('serve_profile_image', filename=editor.profile_picture or 'default.png') }}" alt="Avatar">
+                        <span>{{ editor.name }}</span>
+                    </div>
+                    <div class="item-actions">
+                        <button class="edit-btn" data-id="{{ editor.id }}" data-type="editor" data-name="{{ editor.name }}" data-avatar="{{ url_for('serve_profile_image', filename=editor.profile_picture or 'default.png') }}" title="Edit editor">
+                            <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.13,5.12L18.88,8.87M3,17.25V21H6.75L17.81,9.94L14.06,6.19L3,17.25Z" /></svg>
+                        </button>
+                        <button class="delete-btn" data-id="{{ editor.id }}" data-type="editor" title="Delete editor">
+                            <svg viewBox="0 0 24 24" width="16" height="16">
+                                <path fill="currentColor" d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z" />
+                            </svg>
+                        </button>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<!-- Edit Modals -->
+<div id="edit-subject-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <h3>Edit Subject</h3>
+        <form id="edit-subject-form">
+            <input type="hidden" name="id" />
+            <div class="form-group">
+                <label for="edit_subject_name">Subject Name</label>
+                <input type="text" id="edit_subject_name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="edit_subject_supervisor">Supervisor</label>
+                <select id="edit_subject_supervisor" name="supervisor_id" class="custom-select">
+                    <option value="">No Supervisor</option>
+                    {% for supervisor in supervisors %}
+                    <option value="{{ supervisor.id }}">{{ supervisor.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn-submit">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<div id="edit-supervisor-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <h3>Edit Supervisor</h3>
+        <form id="edit-supervisor-form" enctype="multipart/form-data">
+            <input type="hidden" name="id" />
+            <div class="form-group">
+                <label for="edit_supervisor_name">Supervisor Name</label>
+                <input type="text" id="edit_supervisor_name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label>Current Avatar</label>
+                <img id="edit_supervisor_avatar_preview" src="" alt="Avatar Preview" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; margin-bottom: 0.5rem;">
+            </div>
+            <div class="form-group">
+                <label for="edit_supervisor_avatar_file">New Avatar (Optional)</label>
+                <input type="file" id="edit_supervisor_avatar_file" name="avatar_file" accept="image/*">
+            </div>
+            <button type="submit" class="btn-submit">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<div id="edit-editor-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <h3>Edit Editor</h3>
+        <form id="edit-editor-form" enctype="multipart/form-data">
+            <input type="hidden" name="id" />
+            <div class="form-group">
+                <label for="edit_editor_name">Editor Name</label>
+                <input type="text" id="edit_editor_name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label>Current Avatar</label>
+                <img id="edit_editor_avatar_preview" src="" alt="Avatar Preview" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; margin-bottom: 0.5rem;">
+            </div>
+            <div class="form-group">
+                <label for="edit_editor_avatar_file">New Avatar (Optional)</label>
+                <input type="file" id="edit_editor_avatar_file" name="avatar_file" accept="image/*">
+            </div>
+            <button type="submit" class="btn-submit">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<!-- Link Supervisor Modal -->
+<div id="link-supervisor-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <h3>Link Supervisor to Subject</h3>
+        <div id="supervisor-list-container">
+            {% for supervisor in supervisors %}
+                <div class="supervisor-choice" data-supervisor-id="{{ supervisor.id }}">
+                    <img src="{{ url_for('serve_profile_image', filename=supervisor.profile_picture or 'default.png') }}" alt="Avatar">
+                    <span>{{ supervisor.name }}</span>
+                </div>
+            {% endfor %}
+             {% if not supervisors %}
+                <div class="empty-state small">
+                    <p>No supervisors available to link.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+:root {
+    --primary: #37b3ba;
+    --primary-light: #63c4c9;
+    --primary-dark: #2c8d92;
+    --lightest-gray: #f9fafb;
+    --light-gray: #e5e7eb;
+    --medium-gray: #6b7280;
+    --dark-gray: #374151;
+    --white: #ffffff;
+    --success: #10b981;
+    --danger: #ef4444;
+    --info: #3b82f6;
+    --warning: #f59e0b;
+}
+
+.additions-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0;
+    background: var(--white);
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.flash-messages {
+    padding: 0.5rem 1.5rem;
+}
+
+.flash-message {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    gap: 0.75rem;
+}
+
+.flash-message.success {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.flash-message.error,
+.flash-message.danger {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.flash-message.info {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: var(--info);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.flash-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.flash-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    opacity: 0.7;
+    padding: 0;
+}
+
+.flash-close:hover {
+    opacity: 1;
+}
+
+.additions-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.header-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.2);
+    border-radius: 12px;
+}
+
+.header-icon svg {
+    width: 28px;
+    height: 28px;
+    stroke: white;
+}
+
+.additions-header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    color: white;
+}
+
+.additions-header .subtitle {
+    font-size: 0.875rem;
+    color: rgba(255,255,255,0.8);
+    margin-top: 0.25rem;
+}
+
+.additions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.addition-card {
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    border: 1px solid #e5e7eb;
+}
+
+.full-width-card {
+    grid-column: 1 / -1;
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    background: var(--lightest-gray);
+    border-bottom: 1px solid var(--light-gray);
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+}
+
+.card-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--primary);
+}
+
+.card-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--dark-gray);
+}
+
+.addition-form {
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--light-gray);
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--dark-gray);
+}
+
+.form-group input[type="text"] {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--light-gray);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.form-group input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(55, 179, 186, 0.1);
+}
+
+.file-input-wrapper {
+    position: relative;
+}
+
+.file-input-wrapper input[type="file"] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+.file-input-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    background: var(--lightest-gray);
+    border: 1px solid var(--light-gray);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--medium-gray);
+    transition: all 0.2s;
+}
+
+.file-input-label:hover {
+    background: var(--light-gray);
+}
+
+.file-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.file-success {
+    color: var(--success);
+    display: flex;
+    align-items: center;
+}
+
+.file-replace {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-size: 0.75rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+}
+
+.file-replace:hover {
+    background: rgba(55, 179, 186, 0.1);
+}
+
+.file-remove {
+    background: none;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+}
+
+.file-remove:hover {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+button.btn-submit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.75rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+}
+
+button.btn-submit:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+.btn-submit svg {
+    width: 18px;
+    height: 18px;
+}
+
+.existing-items {
+    padding: 1.25rem;
+}
+
+.existing-items h4 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--medium-gray);
+    margin-top: 0;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.item-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.item-list li {
+    padding: 0.75rem;
+    background: var(--lightest-gray);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--dark-gray);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.item-with-avatar {
+    display: flex;
+    align-items: flex-start;
+}
+
+.item-with-avatar .avatar-name-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.item-with-avatar .avatar-name-group span {
+    line-height: 32px;
+    display: inline-block;
+    vertical-align: top;
+}
+
+.item-with-avatar img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.item-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+    padding-left: 1rem;
+    align-items: center;
+}
+
+.edit-btn {
+    background-color: #3b82f6;
+    color: #222;
+}
+.edit-btn:hover {
+    background-color: #2563eb;
+    color: #fff;
+}
+
+.delete-btn {
+    background-color: #ef4444;
+    color: #222;
+}
+.delete-btn:hover {
+    background-color: #dc2626;
+    color: #fff;
+}
+
+.link-btn {
+    background-color: #10b981;
+    color: #222;
+}
+.link-btn:hover {
+    background-color: #059669;
+    color: #fff;
+}
+
+.view-more-btn {
+    width: 100%;
+    padding: 0.5rem;
+    background: none;
+    border: 1px dashed var(--light-gray);
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--medium-gray);
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: all 0.2s;
+}
+
+.view-more-btn:hover {
+    background: var(--lightest-gray);
+    border-color: var(--primary-light);
+    color: var(--primary);
+}
+
+.more-items {
+    margin-top: 0.5rem;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+    color: var(--medium-gray);
+}
+
+.empty-state.small {
+    padding: 1rem;
+    flex-direction: row;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.empty-state svg {
+    width: 24px;
+    height: 24px;
+    margin-bottom: 0.5rem;
+    opacity: 0.7;
+}
+
+.empty-state.small svg {
+    margin-bottom: 0;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+/* Modals for each type */
+.modal {
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+}
+.modal-content {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 0.75rem;
+    max-width: 400px;
+    width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    overflow: visible;
+}
+.modal-content form .btn-submit {
+    background: var(--primary);
+}
+.modal-content form .btn-submit:hover {
+    background: var(--primary);
+}
+.modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 1.5rem;
+    color: var(--medium-gray);
+    cursor: pointer;
+}
+
+.flash-messages-container {
+    padding: 0 1.5rem;
+}
+
+.subject-name-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: flex-start;
+}
+
+.supervisor-tag {
+    font-size: 0.75rem;
+    padding: 0.15rem 0.5rem;
+    background-color: rgba(59, 130, 246, 0.1);
+    color: var(--info);
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.supervisor-tag .fas {
+    font-size: 0.7rem;
+}
+
+.linked-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #10b981;
+    color: #fff;
+    position: relative;
+}
+.linked-indicator[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 50%;
+    bottom: 110%;
+    top: auto;
+    transform: translateX(-50%);
+    background: #222;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    white-space: nowrap;
+    z-index: 1001;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.linked-indicator[data-tooltip]:hover::after {
+    opacity: 1;
+}
+
+.item-with-avatar {
+    display: flex;
+    align-items: flex-start;
+}
+
+.item-with-avatar .avatar-name-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.item-with-avatar .avatar-name-group span {
+    line-height: 32px;
+    display: inline-block;
+    vertical-align: top;
+}
+
+.item-with-avatar img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.item-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: auto;
+    padding-left: 1rem;
+    align-items: center;
+}
+
+.edit-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.edit-btn:hover {
+    transform: scale(1.1);
+}
+
+.delete-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.delete-btn:hover {
+    transform: scale(1.1);
+}
+
+.view-more-btn {
+    width: 100%;
+    padding: 0.5rem;
+    background: none;
+    border: 1px dashed var(--light-gray);
+    border-radius: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--medium-gray);
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: all 0.2s;
+}
+
+.view-more-btn:hover {
+    background: var(--lightest-gray);
+    border-color: var(--primary-light);
+    color: var(--primary);
+}
+
+.more-items {
+    margin-top: 0.5rem;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+    color: var(--medium-gray);
+}
+
+.empty-state.small {
+    padding: 1rem;
+    flex-direction: row;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.empty-state svg {
+    width: 24px;
+    height: 24px;
+    margin-bottom: 0.5rem;
+    opacity: 0.7;
+}
+
+.empty-state.small svg {
+    margin-bottom: 0;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+/* Styles for the new Supervisor Link Modal */
+#supervisor-list-container {
+    margin-top: 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1.5rem;
+    max-height: 350px;
+    overflow-y: auto;
+    padding: 1rem 0.5rem;
+}
+
+.supervisor-choice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.supervisor-choice:hover {
+    background-color: var(--lightest-gray);
+    border-color: var(--light-gray);
+    transform: translateY(-2px);
+}
+
+.supervisor-choice img {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 0.75rem;
+    border: 2px solid var(--light-gray);
+}
+
+.supervisor-choice span {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--dark-gray);
+}
+
+.link-btn {
+    background: none;
+    border: none;
+    color: var(--medium-gray);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+}
+
+.link-btn:hover {
+    color: var(--primary);
+    background: rgba(55, 179, 186, 0.1);
+    opacity: 1;
+}
+
+#modal-subjects .modal-content .item-list {
+    max-height: 350px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0.5rem 0.25rem 0.5rem 0.5rem;
+    box-sizing: border-box;
+}
+#modal-subjects .modal-content .item-list::-webkit-scrollbar {
+    width: 6px;
+    background: transparent;
+}
+#modal-subjects .modal-content .item-list::-webkit-scrollbar-thumb {
+    background: #e5e7eb;
+    border-radius: 6px;
+}
+#modal-subjects .modal-content .item-list::-webkit-scrollbar-thumb:hover {
+    background: #cbd5e1;
+}
+
+#link-supervisor-modal .modal-content {
+    max-width: 900px;
+    width: 90vw;
+    min-width: 400px;
+}
+#supervisor-list-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1.5rem;
+    max-height: 350px;
+    overflow-y: auto;
+    padding: 1rem 0.5rem;
+}
+
+/* New Schedule Card Styles */
+.schedule-form-container {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1rem 0;
+    border: 1px solid #e2e8f0;
+}
+
+.form-row {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.supervisor-select-wrapper {
+    flex: 1;
+}
+
+.select-with-avatar {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.selected-avatar {
+    position: absolute;
+    left: 12px;
+    pointer-events: none;
+}
+
+.avatar-preview {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+.avatar-preview[src=""] {
+    display: none;
+}
+
+.custom-select {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 50px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: white;
+    appearance: none;
+    transition: all 0.2s;
+    height: 48px;
+}
+
+.custom-select:focus {
+    outline: none;
+    border-color: #37b3ba;
+    box-shadow: 0 0 0 3px rgba(55, 179, 186, 0.1);
+}
+
+.time-range-group {
+    flex: 1;
+}
+
+.time-inputs {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.time-input-wrapper {
+    position: relative;
+    flex: 1;
+    margin-top: 1rem;
+}
+
+.time-input-wrapper label {
+    position: absolute;
+    top: -1.2rem;
+    left: 0;
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.time-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    background: white;
+    height: 48px;
+}
+
+.time-input:focus {
+    outline: none;
+    border-color: #37b3ba;
+    box-shadow: 0 0 0 3px rgba(55, 179, 186, 0.1);
+}
+
+.time-separator {
+    color: #94a3b8;
+    font-weight: 500;
+    padding-top: 1.25rem;
+}
+
+.form-row-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.days-selection-group {
+    flex: 1;
+}
+
+
+.days-pills {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.day-pill {
+    position: relative;
+}
+
+.day-checkbox {
+    position: absolute;
+    opacity: 0;
+}
+
+.day-label {
+    display: block;
+    padding: 0.5rem 1rem;
+    background: #f1f5f9;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #334155;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.day-checkbox:checked + .day-label {
+    background: #37b3ba;
+    color: white;
+}
+
+.day-checkbox:focus + .day-label {
+    box-shadow: 0 0 0 3px rgba(55, 179, 186, 0.2);
+}
+
+.form-footer {
+    display: flex;
+    justify-content: flex-end;
+}
+.form-footer .btn-submit {
+    width: auto;
+    padding: 0.6rem 1.25rem;
+}
+
+
+/* Enhanced Table Styles */
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.table-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-filter {
+    padding: 0.375rem 0.75rem;
+    background: #f1f5f9;
+    border: none;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    color: #64748b;
+    cursor: pointer;
+}
+
+.btn-filter.active {
+    background: #37b3ba;
+    color: white;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.schedule-table th, 
+.schedule-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+}
+
+.schedule-table th {
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    color: #64748b;
+    background: #f8fafc;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.supervisor-col { width: 30%; }
+.days-col { width: 40%; }
+.time-col { width: 20%; }
+.actions-col { width: 10%; text-align: right;}
+
+.supervisor-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.supervisor-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e2e8f0;
+}
+
+.day-tag {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: #37b3ba;
+    color: white;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+.time-slot {
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    color: #334155;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon:hover {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+    color: #64748b;
+    border: 1px dashed #e2e8f0;
+    border-radius: 8px;
+    background: #f8fafc;
+    margin-top: 1rem;
+}
+
+.empty-state p {
+    margin: 0.5rem 0 0;
+    font-weight: 500;
+}
+
+.empty-state small {
+    font-size: 0.8125rem;
+    color: #94a3b8;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .form-row, .form-row-flex {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .time-inputs {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: stretch;
+    }
+    
+    .time-separator { display: none; }
+    
+    .days-pills {
+        justify-content: center;
+    }
+    
+    .schedule-table th, 
+    .schedule-table td {
+        padding: 0.75rem;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dynamicFlashContainer = document.getElementById('dynamic-flash-container');
+
+    function showFlashMessage(message, category) {
+        // Clear previous one-off messages to avoid spamming
+        if (dynamicFlashContainer.hasAttribute('data-is-dynamic')) {
+            dynamicFlashContainer.innerHTML = '';
+        }
+
+        const flashMessage = document.createElement('div');
+        flashMessage.className = `flash-message ${category}`;
+        
+        let iconPath = '';
+        if (category === 'success') {
+            iconPath = "M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"; // Check
+        } else if (category === 'danger' || category === 'error') {
+            iconPath = "M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z"; // Error X
+        } else {
+             iconPath = "M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"; // Info
+        }
+
+        flashMessage.innerHTML = `
+            <svg class="flash-icon" viewBox="0 0 24 24"><path fill="currentColor" d="${iconPath}" /></svg>
+            <span>${message}</span>
+            <button class="flash-close"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" /></svg></button>
+        `;
+        dynamicFlashContainer.appendChild(flashMessage);
+        dynamicFlashContainer.setAttribute('data-is-dynamic', 'true');
+        
+        flashMessage.querySelector('.flash-close').addEventListener('click', () => {
+            flashMessage.style.opacity = '0';
+            setTimeout(() => flashMessage.remove(), 300);
+        });
+    }
+
+    // Process server-rendered flash messages on page load
+    const messagesData = dynamicFlashContainer.getAttribute('data-messages');
+    if (messagesData) {
+        try {
+            const serverMessages = JSON.parse(messagesData);
+            if (serverMessages && serverMessages.length > 0) {
+                dynamicFlashContainer.innerHTML = ''; // Clear container first
+                dynamicFlashContainer.removeAttribute('data-is-dynamic');
+                serverMessages.forEach(([category, message]) => {
+                    const displayCategory = category;
+                    const flashMessage = document.createElement('div');
+                    flashMessage.className = `flash-message ${displayCategory}`;
+                    let iconPath = '';
+                    if (displayCategory === 'success') {
+                        iconPath = "M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z";
+                    } else if (displayCategory === 'error' || displayCategory === 'danger') {
+                        iconPath = "M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z";
+                    } else {
+                        iconPath = "M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z";
+                    }
+                    flashMessage.innerHTML = `
+                        <svg class="flash-icon" viewBox="0 0 24 24"><path fill="currentColor" d="${iconPath}" /></svg>
+                        <span>${message}</span>
+                        <button class="flash-close"><svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" /></svg></button>
+                    `;
+                    dynamicFlashContainer.appendChild(flashMessage);
+
+                    flashMessage.querySelector('.flash-close').addEventListener('click', () => {
+                        flashMessage.style.opacity = '0';
+                        setTimeout(() => flashMessage.remove(), 300);
+                    });
+                });
+            }
+        } catch(e) {
+            console.error("Could not parse flash messages:", e);
+        }
+    }
+
+    // View More functionality (modal)
+    document.querySelectorAll('.view-more-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const modalId = this.getAttribute('data-modal-target');
+            const modal = document.querySelector(modalId);
+            if (modal) {
+                modal.style.display = 'flex';
+            }
+        });
+    });
+
+    // Modal close logic
+    document.querySelectorAll('.modal-close').forEach(closeBtn => {
+        closeBtn.addEventListener('click', function() {
+            this.closest('.modal').style.display = 'none';
+        });
+    });
+
+    window.addEventListener('click', function(event) {
+        document.querySelectorAll('.modal').forEach(modal => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+
+    // File input display
+    function setupFileInput(inputId, fileNameSpanId, actionsId) {
+        const fileInput = document.getElementById(inputId);
+        const fileNameSpan = document.getElementById(fileNameSpanId);
+        const fileActions = document.getElementById(actionsId);
+
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                fileNameSpan.textContent = this.files[0].name;
+                fileActions.style.display = 'flex';
+            } else {
+                fileNameSpan.textContent = 'Choose file';
+                fileActions.style.display = 'none';
+            }
+        });
+
+        // Replace button
+        document.querySelector(`.file-replace[data-target="${inputId}"]`)?.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        // Remove button
+        document.querySelector(`.file-remove[data-target="${inputId}"]`)?.addEventListener('click', function() {
+            fileInput.value = '';
+            fileNameSpan.textContent = 'Choose file';
+            fileActions.style.display = 'none';
+        });
+    }
+
+    // Setup file inputs
+    setupFileInput('supervisor_avatar_file', 'supervisor-file-name', 'supervisor-file-actions');
+    setupFileInput('avatar_file', 'editor-file-name', 'editor-file-actions');
+
+    // Delete buttons
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const type = this.dataset.type;
+            
+            if (confirm(`Are you sure you want to delete this ${type}?`)) {
+                fetch(`/delete-${type}/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        showFlashMessage(data.error || 'An error occurred.', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showFlashMessage('An error occurred while deleting.', 'error');
+                });
+            }
+        });
+    });
+
+    // Edit Modals Logic
+    document.querySelectorAll('.edit-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const type = this.dataset.type;
+            const name = this.dataset.name;
+            const avatar = this.dataset.avatar;
+
+            const modal = document.getElementById(`edit-${type}-modal`);
+            const form = document.getElementById(`edit-${type}-form`);
+            
+            form.querySelector('[name="id"]').value = id;
+            form.querySelector('[name="name"]').value = name;
+
+            if (type === 'supervisor' || type === 'editor') {
+                form.querySelector('img').src = avatar;
+                form.querySelector('input[type="file"]').value = ''; // Clear file input
+            }
+
+            if (type === 'subject') {
+                const supervisorId = this.dataset.supervisorId;
+                const supervisorSelect = form.querySelector('[name="supervisor_id"]');
+                if (supervisorSelect) {
+                    supervisorSelect.value = supervisorId || '';
+                }
+            }
+
+            modal.style.display = 'flex';
+        });
+    });
+
+    // Edit form submission
+    function handleEditFormSubmit(formId, type) {
+        document.getElementById(formId).addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const id = formData.get('id');
+
+            fetch(`/edit-${type}/${id}`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    showFlashMessage(data.error, 'error');
+                }
+            }).catch(err => {
+                showFlashMessage('An error occurred.', 'error');
+                console.error(err);
+            });
+        });
+    }
+
+    handleEditFormSubmit('edit-subject-form', 'subject');
+    handleEditFormSubmit('edit-supervisor-form', 'supervisor');
+    handleEditFormSubmit('edit-editor-form', 'editor');
+
+    // Link Supervisor Modal Logic
+    document.querySelectorAll('.link-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const subjectId = this.dataset.id;
+            const modal = document.getElementById('link-supervisor-modal');
+            
+            // Store the subject ID on the modal itself to be retrieved later
+            modal.dataset.subjectId = subjectId;
+
+            modal.style.display = 'flex';
+        });
+    });
+
+    // New logic for clicking a supervisor in the modal
+    document.querySelectorAll('.supervisor-choice').forEach(choice => {
+        choice.addEventListener('click', function() {
+            const supervisorId = this.dataset.supervisorId;
+            const modal = document.getElementById('link-supervisor-modal');
+            const subjectId = modal.dataset.subjectId;
+
+            if (!supervisorId || !subjectId) {
+                showFlashMessage('An error occurred. Could not find subject or supervisor.', 'error');
+                return;
+            }
+
+            fetch(`/link-supervisor/${subjectId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ supervisor_id: supervisorId })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    showFlashMessage(data.error || 'An error occurred.', 'error');
+                    modal.style.display = 'none';
+                }
+            }).catch(err => {
+                showFlashMessage('An error occurred.', 'error');
+                modal.style.display = 'none';
+                console.error(err);
+            });
+        });
+    });
+
+    document.querySelectorAll('.delete-schedule-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const scheduleId = button.dataset.id;
+            const row = button.closest('tr');
+
+            if (confirm('Are you sure you want to delete this schedule entry?')) {
+                fetch(`/delete-schedule/${scheduleId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        row.remove();
+                        showFlashMessage("The supervisor's schedule has been successfully removed.", 'success');
+                    } else {
+                        showFlashMessage(data.error || 'Failed to delete schedule.', 'danger');
+                    }
+                })
+                .catch(() => showFlashMessage('An error occurred.', 'danger'));
+            }
+        });
+    });
+
+    // Supervisor avatar preview in select
+    const supervisorSelect = document.getElementById('supervisor_id');
+    const avatarPreview = document.getElementById('supervisor-avatar-preview');
+    
+    function updateAvatarPreview() {
+        if (supervisorSelect.selectedIndex > 0) {
+            const selectedOption = supervisorSelect.options[supervisorSelect.selectedIndex];
+            avatarPreview.src = selectedOption.dataset.avatar;
+            avatarPreview.style.display = 'block';
+        } else {
+            avatarPreview.src = '';
+            avatarPreview.style.display = 'none';
+        }
+    }
+
+    if (supervisorSelect && avatarPreview) {
+        updateAvatarPreview();
+        supervisorSelect.addEventListener('change', updateAvatarPreview);
+    }
+
+    // Schedule table filtering
+    const filterAllBtn = document.getElementById('filter-all');
+    const filterTodayBtn = document.getElementById('filter-today');
+    const scheduleTableBody = document.getElementById('schedule-table-body');
+
+    if (filterAllBtn && filterTodayBtn && scheduleTableBody) {
+        const rows = scheduleTableBody.querySelectorAll('tr');
+        const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+
+        filterAllBtn.addEventListener('click', () => {
+            rows.forEach(row => row.style.display = '');
+            filterAllBtn.classList.add('active');
+            filterTodayBtn.classList.remove('active');
+        });
+
+        filterTodayBtn.addEventListener('click', () => {
+            rows.forEach(row => {
+                if (row.dataset.day === today) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            filterTodayBtn.classList.add('active');
+            filterAllBtn.classList.remove('active');
+        });
+    }
+});
+</script>
+{% endblock %}

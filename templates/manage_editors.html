@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Editors</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        body { font-family: Arial; background: #f4f7f9; padding: 20px; }
+        h2 { color: #2d8c91; }
+        table { width: 100%; background: white; border-collapse: collapse; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        th, td { padding: 12px; border: 1px solid #eee; }
+        th { background: #37b3ba; color: white; }
+        tr:hover { background: #f0f0f0; }
+        .form-section { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        input[type="text"], input[type="file"] {
+            padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; width: 100%;
+        }
+        button { background: #2d8c91; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
+        img.profile-thumb { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
+    </style>
+</head>
+<body>
+    <h2>Manage Editors</h2>
+
+    <div class="form-section">
+        <form method="POST" action="{{ url_for('add_editor') }}" enctype="multipart/form-data">
+            <label>Editor Name:</label>
+            <input type="text" name="name" required>
+
+            <label>Profile Picture:</label>
+            <input type="file" name="profile_picture" accept="image/*" required>
+
+            <button type="submit">Add Editor</button>
+        </form>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Editor</th>
+                <th>Profile Picture</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for editor in editors %}
+            <tr>
+                <td>{{ editor.name }}</td>
+                <td>
+                    {% if editor.profile_picture %}
+                    <img src="{{ url_for('serve_profile_image', filename=editor.profile_picture or 'default.png') }}" alt="{{ editor.name }}">
+
+                    
+                    {% else %}
+                        No Picture
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

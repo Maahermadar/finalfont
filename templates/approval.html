@@ -1,348 +1,234 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Approved Videos</title>
-    <style>
-        
-    
-        body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f1f1f1;
-    padding: 40px;
-    margin: 0;
-}
+{% extends "dashboard_base.html" %}
+{% block dashboard_content %}
 
-.title {
-    font-size: 28px;
-    font-weight: bold;
-    color: #2f855a;
-    margin-bottom: 30px;
-    text-align: center;
-}
-
-.container {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 30px;
-}
-
-/* Left Table Section */
-.table-section {
-    flex: 2;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    background-color: #ffffff;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 128, 0, 0.1);
-}
-
-th, td {
-    padding: 10px 12px;
-    text-align: left;
-    font-size: 15px;
-    border: 1px solid #e0e0e0;
-}
-
-th {
-    background-color: #38a169;
-    color: white;
-    border: none;
-}
-
-tr:nth-child(even) {
-    background-color: #f9f9f9;
-}
-
-tr:nth-child(odd) {
-    background-color: #ffffff;
-}
-
-.checkmark {
-    color: #38a169;
-    font-size: 24px;
-    padding-left: 4px;
-}
-
-/* Right Stats Section */
-.stats-section {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.stat-card {
-    background-color: #e2e8f0;
-    border-radius: 10px;
-    padding: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
-    width: 500px;
-}
-
-.stat-left {
-    flex: 0;
-}
-
-.stat-number {
-    font-size: 39px;
-    font-weight: bold;
-    color: #2d3748;
-    margin-right: 10px;
-}
-
-.stat-content {
-    flex: 1;
-}
-
-.stat-title {
-    font-size: 19px;
-    font-weight: bold;
-    color: #2d3748;
-}
-
-.stat-subtext {
-    font-size: 13px;
-    color: #4a5568;
-}
-
-.stat-card:hover {
-    background-color: #38a169;
-    transform: scale(1.03);
-}
-
-.stat-card:hover .stat-number,
-.stat-card:hover .stat-title,
-.stat-card:hover .stat-subtext {
-    color: white;
-}
-
-/* Filter Section */
-.filter-section {
-    margin-bottom: 20px;
-    text-align: center;
-    position: relative;
-    display: inline-flex;
-    gap: 10px;
-    align-items: center;
-}
-
-/* Dropdown Button Styling */
-.dropdown-btn {
-    padding: 8px 16px;
-    font-size: 14px;
-    border: 1px solid #ccc;
-    border-radius: 25px;
-    background-color: #fff;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 200px;
-    height: 35px;
-}
-
-.dropdown-btn:hover {
-    background-color: #f9f9f9;
-}
-
-.dropdown-arrow {
-    margin-left: 8px;
-    font-size: 18px;
-    transition: transform 0.3s ease;
-}
-
-.dropdown-btn.open .dropdown-arrow {
-    transform: rotate(180deg);
-}
-
-/* Dropdown Menu */
-.dropdown-menu {
-    display: none;
-    position: absolute;
-    top: 40px;
-    left: 0;
-    background-color: #fff;
-    border: 1px solid #ccc;
-    border-radius: 10px;
-    width: 200px;
-    z-index: 10;
-    text-align: left;
-}
-
-.dropdown-menu.show {
-    display: block;
-}
-
-.dropdown-menu a {
-    display: block;
-    padding: 10px;
-    text-decoration: none;
-    color: #333;
-    font-size: 14px;
-    text-align: center;
-}
-
-.dropdown-menu a:hover {
-    background-color: #38a169;
-    color: white;
-}
-
-/* Search Bar */
-.search-bar {
-    padding: 6px 12px;
-    font-size: 14px;
-    border: 1px solid #ccc;
-    border-radius: 25px;
-    width: 500px;
-    height: 22px;
-    margin-left: 15px;
-}
-
-.download-btn {
-    background-color: #38a169;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 8px;
-}
-
-.download-btn:hover {
-    background-color: #2f855a;
-}
-
-.download-btn i {
-    font-size: 18px;
-}
-
-
-    </style>
-</head>
-<body>
-
-<div class="title">✅ Approved Videos</div>
-
-<!-- Filter Section -->
-<div class="filter-section">
-    <!-- Dropdown Button -->
-    <button class="dropdown-btn" onclick="toggleDropdown()">
-        Select Subject
-        <span class="dropdown-arrow">▼</span>
-    </button>
-
-    <!-- Search Bar -->
-    <input type="text" id="search" class="search-bar" placeholder="Search subjects..." onkeyup="filterDropdown()">
-
-    <!-- Dropdown Menu -->
-    <div class="dropdown-menu" id="dropdown-menu">
-        <a href="{{ url_for('approval', subject='') }}">All Subjects</a>
-        {% for subject in subjects %}
-            <a href="{{ url_for('approval', subject=subject[0]) }}"
-               class="{{ 'selected' if request.args.get('subject') == subject[0] else '' }}">
-                {{ subject[0] }}
-            </a>
-        {% endfor %}
+<!-- Themed Header -->
+<div class="user-promo-header">
+    <div class="header-content">
+        <h1><i class="fas fa-check-circle icon-header"></i> Approved Videos</h1>
+        <p class="subtitle">Browse, filter, and download approved video content.</p>
+    </div>
+    <div class="header-actions">
+        <button class="btn btn-secondary" onclick="openStats()">
+            <i class="fas fa-download"></i> Download by Subject
+        </button>
+        <a href="{{ url_for('download_all_subjects') }}" class="btn btn-primary">
+            <i class="fas fa-archive"></i> Download All
+        </a>
     </div>
 </div>
 
-<div class="container">
-    <!-- Left: Approved Table -->
+<div class="approval-container">
+    <!-- Filter and Search Section -->
+    <div class="filter-controls">
+        <div class="filter-group">
+            <label for="subject-filter"><i class="fas fa-book"></i></label>
+            <select id="subject-filter" class="form-control" onchange="location = this.value;">
+                <option value="{{ url_for('approval') }}" {% if not selected_subject %}selected{% endif %}>All Subjects</option>
+                {% for subject in subjects %}
+                    <option value="{{ url_for('approval', subject=subject) }}" {% if subject == selected_subject %}selected{% endif %}>
+                        {{ subject }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="tableSearch"><i class="fas fa-search"></i></label>
+            <input type="text" id="tableSearch" class="form-control" placeholder="Search table..." onkeyup="filterTableRows()">
+        </div>
+    </div>
+
+    <!-- Table Section -->
     <div class="table-section">
-        <table>
-            <tr>
-                <th>Status</th>
-                <th>Subject</th>
-                <th>Chapter</th>
-                <th>Episode</th>
-                <th>Date</th>
-            </tr>
-            {% for video in videos %}
-            <tr>
-                <td class="checkmark">✅</td>
-                <td>{{ video.subject }}</td>
-                <td>{{ video.chapter }}</td>
-                <td>{{ video.episode }}</td>
-                <td>{{ video.date }}</td>
-            </tr>
-            {% endfor %}
+        <table id="videosTable">
+            <thead>
+                <tr>
+                    <th>Status</th>
+                    <th>Subject</th>
+                    <th>Episode</th>
+                    <th>Editor</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for video in videos.items %}
+                <tr>
+                    <td><span class="status-badge status-approved"><i class="fas fa-check-circle"></i>{{ video.status }}</span></td>
+                    <td>{{ video.subject }}</td>
+                    <td>{{ video.episode }}</td>
+                    <td>
+                        {% if video.editor %}
+                        <div class="editor-cell">
+                            <img src="{{ url_for('serve_profile_image', filename=video.editor.profile_picture or 'default.png') }}" alt="{{ video.editor.name }}" class="avatar-sm">
+                            <span>{{ video.editor.name }}</span>
+                        </div>
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                    <td>{{ video.date }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="no-results">No approved videos found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
         </table>
     </div>
 
-    <!-- Right: Stats Cards -->
+    <!-- Pagination -->
+    {% if videos.pages > 1 %}
+    <div class="pagination-bar">
+        <a href="{{ url_for('approval', page=videos.prev_num, subject=selected_subject) }}"
+           class="btn btn-secondary {{ 'disabled' if not videos.has_prev }}">
+            &laquo; Previous
+        </a>
+        <span>Page {{ videos.page }} of {{ videos.pages }}</span>
+        <a href="{{ url_for('approval', page=videos.next_num, subject=selected_subject) }}"
+           class="btn btn-secondary {{ 'disabled' if not videos.has_next }}">
+            Next &raquo;
+        </a>
+    </div>
+    {% endif %}
+</div>
 
-    <div class="stats-section">
-        {% for subject, data in subject_stats.items() %}
-
-        <div class="stat-card">
-            <div class="stat-left">
-                <div class="stat-number" data-target="{{ data.approved }}">0</div>
-            </div>
-            <div class="stat-content">
-                <div class="stat-title">{{ subject }}</div>
-                <div class="stat-subtext">and {{ data.pending }} pending to editors video</div>
-                <a href="{{ url_for('download_subject', subject=subject) }}">
-                    <button class="download-btn">
-                        <i class="fa fa-file-excel"></i> Download {{ subject }}
-                    </button>
-                </a>
+<!-- Download by Subject Modal -->
+<div id="stat-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-download"></i> Download by Subject</h3>
+            <button class="modal-close" onclick="closeStats()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Select a subject to download all its approved videos in a single ZIP file.</p>
+            <div class="card-grid">
+                {% for subject in subjects %}
+                <div class="subject-card">
+                    <div class="subject-details">
+                        <span class="subject-name">{{ subject }}</span>
+                        <span class="subject-count">{{ approved_counts.get(subject, 0) }} approved</span>
+                    </div>
+                    <a href="{{ url_for('download_subject', subject=subject) }}" class="btn btn-primary">
+                        Download
+                    </a>
+                </div>
+                {% endfor %}
             </div>
         </div>
-
-        {% endfor %}
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeStats()">Close</button>
+        </div>
     </div>
-    
+</div>
+
+<style>
+/* Themed styles */
+:root {
+    --primary: #37b3ba;
+    --primary-dark: #2a8b91;
+    --primary-bg: rgba(55, 179, 186, 0.1);
+    --success: #16a34a; /* Green */
+    --success-dark: #15803d;
+    --success-bg: rgba(22, 163, 74, 0.1);
+    --light-gray: #f8f9fa;
+    --medium-gray: #6c757d;
+    --dark-gray: #343a40;
+    --border-color: #dee2e6;
+    --border-radius: 0.5rem;
+    --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+.approval-container { 
+    padding: 1rem 2rem; 
+    background: white; 
+    border: 1px solid var(--border-color);
+    border-top: none; /* The header provides the top visual edge */
+    border-radius: 0 0 12px 12px;
+}
+.user-promo-header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 2rem; background: var(--primary); color: white; border-radius: 12px 12px 0 0; }
+.user-promo-header h1 { font-size: 1.75rem; margin: 0; display: flex; align-items: center; gap: 0.75rem; color: white; }
+.user-promo-header .subtitle { margin-top: 0.25rem; font-size: 0.95rem; color: rgba(255, 255, 255, 0.9); }
+.header-actions { display: flex; gap: 0.75rem; }
+.btn { padding: 0.6rem 1.2rem; border-radius: var(--border-radius); font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; border: 1px solid transparent; text-decoration: none; }
+.btn-primary { background: white; color: var(--primary-dark); font-weight: 600; }
+.btn-primary:hover { background: rgba(255, 255, 255, 0.9); transform: translateY(-1px); }
+.btn-secondary { background: rgba(255, 255, 255, 0.2); color: white; border-color: rgba(255, 255, 255, 0.5); }
+.btn-secondary:hover { background: rgba(255, 255, 255, 0.3); }
+
+/* Filter Controls */
+.filter-controls { display: flex; gap: 1rem; margin: 1.5rem 0; padding: 1rem; background: var(--light-gray); border-radius: var(--border-radius); }
+.filter-group { display: flex; align-items: center; flex-grow: 1; }
+.filter-group label { padding: 0 0.75rem; color: var(--medium-gray); }
+.form-control { width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--border-radius); font-size: 1rem; }
+.form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(55, 179, 186, 0.25); }
+
+/* Table Styles */
+.table-section { overflow-x: auto; border: 1px solid var(--border-color); border-radius: var(--border-radius); }
+table { width: 100%; border-collapse: collapse; }
+table th, table td { padding: 0.85rem 1rem; border-bottom: 1px solid var(--border-color); text-align: left; border-right: 1px solid var(--border-color); }
+table th:last-child, table td:last-child { border-right: none; }
+table th { background: var(--primary); font-weight: 600; color: white; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 0.5px; }
+table tbody tr:hover { background-color: #f1f1f1; }
+.no-results { text-align: center; padding: 2rem; color: var(--medium-gray); }
+.status-badge { padding: 0.25rem 0.6rem; border-radius: 50px; font-size: 0.8rem; font-weight: 500; display: inline-flex; align-items: center; gap: 0.4rem; }
+.status-approved { background: transparent; color: var(--success); padding: 0; font-weight: normal; font-size: 0.9rem; }
+.editor-cell { display: flex; align-items: center; gap: 0.75rem; }
+.avatar-sm { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+.btn-download { background: none; border: none; color: var(--medium-gray); padding: 0.5rem; }
+.btn-download:hover { color: var(--primary); }
+
+/* Pagination */
+.pagination-bar { display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.5rem; }
+.pagination-bar .btn { background-color: var(--light-gray); color: var(--dark-gray); border-color: var(--border-color); }
+.pagination-bar .btn.disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Modal Styles */
+.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; }
+.modal-content { background: white; border-radius: var(--border-radius); width: 100%; max-width: 700px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); animation: modalFadeIn 0.3s; overflow: hidden; }
+@keyframes modalFadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+.modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; background: var(--light-gray); }
+.modal-header h3 { margin: 0; font-size: 1.25rem; display: flex; align-items: center; gap: 0.75rem; }
+.modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--medium-gray); padding: 0.25rem; }
+.modal-body { padding: 1.5rem; }
+.modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.75rem; }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+.subject-card { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--light-gray); border-radius: var(--border-radius); }
+.subject-name { font-weight: 500; }
+.subject-count { font-size: 0.85rem; color: var(--medium-gray); }
+.subject-card .btn-primary { background: var(--primary); color: white; }
+</style>
 
 <script>
-    function toggleDropdown() {
-        const dropdownMenu = document.getElementById('dropdown-menu');
-        const dropdownBtn = document.querySelector('.dropdown-btn');
-        dropdownMenu.classList.toggle('show');
-        dropdownBtn.classList.toggle('open');
-    }
+function filterTableRows() {
+    const searchInput = document.getElementById('tableSearch').value.toLowerCase();
+    const table = document.getElementById('videosTable');
+    const rows = table.getElementsByTagName('tr');
 
-    function filterDropdown() {
-        const input = document.getElementById('search');
-        const filter = input.value.toLowerCase();
-        const dropdownItems = document.querySelectorAll('.dropdown-menu a');
-        dropdownItems.forEach(item => {
-            const text = item.textContent || item.innerText;
-            item.style.display = text.toLowerCase().includes(filter) ? "block" : "none";
-        });
-    }
-
-    const counters = document.querySelectorAll('.stat-number');
-    counters.forEach(counter => {
-        const target = +counter.getAttribute('data-target');
-        let count = 0;
-        const step = Math.ceil(target / 40);
-        const interval = setInterval(() => {
-            count += step;
-            if (count >= target) {
-                counter.innerText = target;
-                clearInterval(interval);
-            } else {
-                counter.innerText = count;
+    for (let i = 1; i < rows.length; i++) {
+        const cells = rows[i].getElementsByTagName('td');
+        let shouldDisplay = false;
+        for (let j = 0; j < cells.length; j++) { 
+            if (cells[j].innerText.toLowerCase().includes(searchInput)) {
+                shouldDisplay = true;
+                break;
             }
-        }, 20);
-    });
+        }
+        rows[i].style.display = shouldDisplay ? '' : 'none';
+    }
+}
+
+function openStats() {
+    document.getElementById('stat-modal').style.display = 'flex';
+}
+
+function closeStats() {
+    document.getElementById('stat-modal').style.display = 'none';
+}
+
+window.onclick = function(event) {
+    if (event.target == document.getElementById('stat-modal')) {
+        closeStats();
+    }
+}
 </script>
 
-</body>
-</html>
+{% endblock %}

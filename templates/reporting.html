@@ -1,0 +1,221 @@
+{% extends "dashboard_base.html" %}
+{% block dashboard_content %}
+<style>
+  .report-generator-container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 2.5rem;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.07);
+    border: 1px solid #e9ecef;
+  }
+  .report-header h1 {
+    font-size: 2rem;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    text-align: center;
+    font-weight: 700;
+  }
+  .report-header p {
+    font-size: 1.1rem;
+    color: #7f8c8d;
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+  .form-section {
+    margin-bottom: 2rem;
+  }
+  .form-section-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #34495e;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #37b3ba;
+    display: inline-block;
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    align-items: center;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+  .form-group label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #555;
+  }
+  .form-control {
+    padding: 12px 18px;
+    border: 1px solid #c9d0d6;
+    border-radius: 8px;
+    font-size: 1rem;
+    color: #34495e;
+    width: 100%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .form-control:focus {
+    border-color: #37b3ba;
+    box-shadow: 0 0 0 3px rgba(55,179,186,0.25);
+    outline: none;
+  }
+  .quick-select-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 0.75rem;
+  }
+  .quick-select-btn {
+    background-color: #f1f3f5;
+    border: 1px solid #dee2e6;
+    color: #495057;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+  }
+  .quick-select-btn:hover {
+    background-color: #e9ecef;
+  }
+  #dynamic-options-container .form-group {
+      margin-top: 1rem;
+  }
+  .generate-btn-container {
+    text-align: center;
+    margin-top: 2.5rem;
+  }
+  .generate-btn {
+    background: linear-gradient(90deg, #37b3ba, #2c9a9f);
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 14px 30px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 15px rgba(55,179,186,0.2);
+  }
+  .generate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(55,179,186,0.3);
+  }
+</style>
+
+<div class="report-generator-container">
+  <div class="report-header">
+    <h1>Master Report Generator</h1>
+    <p>Select your criteria and generate detailed production reports in Excel format.</p>
+  </div>
+
+  <form id="report-form" action="{{ url_for('generate_report') }}" method="POST">
+    
+    <div class="form-section">
+      <h2 class="form-section-title">Step 1: Define Date Range</h2>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="start-date">Start Date</label>
+          <input type="date" id="start-date" name="start_date" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label for="end-date">End Date</label>
+          <input type="date" id="end-date" name="end_date" class="form-control" required>
+        </div>
+      </div>
+      <div class="quick-select-buttons">
+        <button type="button" class="quick-select-btn" data-range="7">Last 7 Days</button>
+        <button type="button" class="quick-select-btn" data-range="30">Last 30 Days</button>
+        <button type="button" class="quick-select-btn" data-range="this-month">This Month</button>
+        <button type="button" class="quick-select-btn" data-range="last-month">Last Month</button>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h2 class="form-section-title">Step 2: Select Report Type</h2>
+      <div class="form-group">
+        <label for="report-type">Report Type</label>
+        <select id="report-type" name="report_type" class="form-control">
+          <option value="production_summary">Overall Production Summary</option>
+          <option value="subject_deep_dive">Subject Deep Dive</option>
+          <option value="editor_task_log">Editor Task Log</option>
+        </select>
+      </div>
+      <div id="dynamic-options-container"></div>
+    </div>
+
+    <div class="generate-btn-container">
+      <button type="submit" class="generate-btn">
+        <i class="fa-solid fa-file-excel"></i> Generate Report
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const reportTypeSelect = document.getElementById('report-type');
+    const dynamicOptionsContainer = document.getElementById('dynamic-options-container');
+
+    const subjectData = {{ subjects | tojson }};
+    const editorData = {{ editors | tojson }};
+
+    function createSelect(name, label, options) {
+        let optionsHTML = options.map(opt => `<option value="${opt.id}">${opt.name}</option>`).join('');
+        return `
+            <div class="form-group">
+                <label for="${name}">${label}</label>
+                <select id="${name}" name="${name}" class="form-control">${optionsHTML}</select>
+            </div>
+        `;
+    }
+
+    reportTypeSelect.addEventListener('change', function() {
+        dynamicOptionsContainer.innerHTML = '';
+        if (this.value === 'subject_deep_dive') {
+            dynamicOptionsContainer.innerHTML = createSelect('subject_id', 'Select Subject', subjectData);
+        } else if (this.value === 'editor_task_log') {
+            dynamicOptionsContainer.innerHTML = createSelect('editor_id', 'Select Editor', editorData);
+        }
+    });
+
+    // Quick date selection logic
+    const startDateInput = document.getElementById('start-date');
+    const endDateInput = document.getElementById('end-date');
+    
+    function formatDate(date) {
+        return date.toISOString().split('T')[0];
+    }
+
+    document.querySelectorAll('.quick-select-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const range = this.dataset.range;
+            const today = new Date();
+            endDateInput.value = formatDate(today);
+
+            if (range === '7' || range === '30') {
+                let startDate = new Date();
+                startDate.setDate(today.getDate() - parseInt(range));
+                startDateInput.value = formatDate(startDate);
+            } else if (range === 'this-month') {
+                let startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                startDateInput.value = formatDate(startDate);
+            } else if (range === 'last-month') {
+                let endOfLastMonth = new Date(today.getFullYear(), today.getMonth(), 0);
+                let startOfLastMonth = new Date(endOfLastMonth.getFullYear(), endOfLastMonth.getMonth(), 1);
+                startDateInput.value = formatDate(startOfLastMonth);
+                endDateInput.value = formatDate(endOfLastMonth);
+            }
+        });
+    });
+
+    // Set default dates to This Month
+    document.querySelector('.quick-select-btn[data-range="this-month"]').click();
+});
+</script>
+{% endblock %} 

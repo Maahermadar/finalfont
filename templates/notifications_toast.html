@@ -1,0 +1,90 @@
+<!-- This is a temporary file for testing toast notifications. -->
+<!-- It will be reverted to the dynamic version that uses real data. -->
+
+{% if admin_toasts or editor_toasts %}
+<div class="toast-container" id="toast-container">
+    {% set total_toasts = admin_toasts|length + editor_toasts|length %}
+    {% if total_toasts > 3 %}
+        {# Show a summary for more than 3 notifications #}
+        <div class="toast-notification">
+            <div class="toast-icon"><i class="fas fa-inbox"></i></div>
+            <div class="toast-content">
+                <p class="toast-title">Multiple Notifications</p>
+                <p class="toast-message">You have <strong>{{ total_toasts }}</strong> new updates waiting for you.</p>
+                 <a href="{{ url_for('notifications_page') }}" class="toast-link">View All</a>
+            </div>
+            <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+        </div>
+    {% else %}
+        {# Show individual toasts if 3 or fewer #}
+
+        {# Admin Toasts (Submissions, Password Resets) #}
+        {% for notification in admin_toasts %}
+        <div class="toast-notification admin-toast">
+            <div class="toast-icon">
+                {% if notification.notification_type == 'password_reset' %}
+                    <i class="fas fa-key"></i>
+                {% elif notification.notification_type == 'submission' %}
+                    <i class="fas fa-paper-plane"></i>
+                {% endif %}
+            </div>
+            <div class="toast-content">
+                <p class="toast-title">{{ notification.header }}</p>
+                <p class="toast-message">{{ notification.message | safe }}</p>
+                {% if notification.notification_type == 'submission' %}
+                    <a href="{{ url_for('review_submissions') }}" class="toast-link">Review Submissions</a>
+                {% endif %}
+            </div>
+            <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+        </div>
+        {% endfor %}
+
+        {# Editor Toasts (Comments) #}
+        {% for notification in editor_toasts %}
+        <div class="toast-notification editor-toast">
+            <div class="toast-icon">
+                <i class="fas fa-comment"></i>
+            </div>
+            <div class="toast-content">
+                <p class="toast-title">{{ notification.header }}</p>
+                 {% if notification.comment %}
+                    <p class="toast-message">
+                        New feedback for <strong>{{ notification.comment.subject }} - Ep {{ notification.comment.episode }}</strong>.
+                    </p>
+                    <a href="{{ url_for('my_comments', _anchor='comment-' ~ notification.comment_id) }}" class="toast-link">View Comment</a>
+                {% else %}
+                    <p class="toast-message">{{ notification.message | safe }}</p>
+                {% endif %}
+            </div>
+            <button class="toast-close" onclick="this.parentElement.remove()">&times;</button>
+        </div>
+        {% endfor %}
+
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) return;
+    const toasts = Array.from(toastContainer.querySelectorAll('.toast-notification'));
+
+    // Stagger the entrance of each toast
+    toasts.forEach((toast, index) => {
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 150 * index);
+    });
+
+    // Auto-dismiss toasts after a delay
+    toasts.forEach((toast, index) => {
+        setTimeout(() => {
+            if (!toast) return;
+            toast.classList.remove('show');
+            // Remove the element from the DOM after the transition ends
+            toast.addEventListener('transitionend', () => toast.remove(), { once: true });
+        }, 6000 + (index * 1000)); // Stagger dismissal
+    });
+});
+</script>
+{% endif %} 

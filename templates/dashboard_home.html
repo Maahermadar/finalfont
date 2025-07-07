@@ -1,0 +1,1817 @@
+{% extends "dashboard_base.html" %}
+{% block dashboard_content %}
+
+<!-- Header (unchanged) -->
+<div class="user-promo-header">
+    <div class="header-content">
+        <h1><i class="fas fa-gauge-high icon-header"></i> Mission Control</h1>
+        <p class="subtitle">A real-time overview of the production pipeline.</p>
+    </div>
+</div>
+
+<!-- Main Content - Cleaned Up Version -->
+<div class="dashboard-container">
+    <!-- Stat Cards - Improved -->
+    <div class="stat-cards">
+        <div class="stat-card" data-status="subjects">
+            <div class="stat-content">
+                <div class="stat-title">Subjects</div>
+                <div class="stat-value">{{ total_subjects }}</div>
+            </div>
+            <i class="fas fa-book stat-icon"></i>
+        </div>
+        
+        <div class="stat-card" data-status="pending">
+            <div class="stat-content">
+                <div class="stat-title">Pending</div>
+                <div class="stat-value">{{ pending_count }}</div>
+            </div>
+            <i class="fas fa-clock stat-icon"></i>
+        </div>
+        
+        <div class="stat-card" data-status="under_review">
+            <div class="stat-content">
+                <div class="stat-title">Under Review</div>
+                <div class="stat-value">{{ review_count }}</div>
+            </div>
+            <i class="fas fa-search stat-icon"></i>
+        </div>
+        
+        <div class="stat-card stat-card-approved" data-status="approved">
+            <div class="stat-content">
+                <div class="stat-title">Approved</div>
+                <div class="stat-value">{{ approved_count }}</div>
+            </div>
+            <i class="fas fa-check-circle stat-icon"></i>
+        </div>
+        
+        <div class="stat-card highlight" id="supervisor-schedule-btn" data-status="schedule">
+            <div class="stat-content">
+                <div class="stat-title">
+                    {% if current_user.role == 'supervisor' %}
+                    Your Schedule
+                    {% else %}
+                    Supervisor Schedule
+                    {% endif %}
+                </div>
+                <div class="stat-description">
+                    {% if current_user.role == 'supervisor' %}
+                    View your weekly availability
+                    {% else %}
+                    Check supervisor availability
+                    {% endif %}
+                </div>
+            </div>
+            <i class="fas fa-calendar-alt stat-icon"></i>
+        </div>
+    </div>
+
+    <!-- Three Column Layout - Cleaned Up -->
+    <div class="panel-grid">
+        <!-- Panel 1: Action Items -->
+        <div class="dashboard-panel">
+            <div class="panel-header">
+                <h3><i class="fas fa-list-check"></i> Action Items</h3>
+            </div>
+            <div class="panel-body">
+                {% if pending_reviews %}
+                <ul class="data-list">
+                    {% for subject, count in pending_reviews %}
+                    <li class="data-item">
+                        <span class="data-label">{{ subject }}</span>
+                        <span class="data-value pending-badge">{{ count }} pending</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="empty-message">
+                    <i class="fas fa-check-circle"></i>
+                    No pending reviews
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Panel 2: Latest Activity -->
+        <div class="dashboard-panel">
+            <div class="panel-header">
+                <h3><i class="fas fa-bolt"></i> Latest Activity</h3>
+            </div>
+            <div class="panel-body">
+                <div class="activity-item">
+                    <i class="fas fa-check-circle success-icon"></i>
+                    <div class="activity-details">
+                        <div class="activity-title">Latest Approval</div>
+                        {% if last_approved_video %}
+                        <div class="activity-info">{{ last_approved_video.subject }} - Ep {{ last_approved_video.episode }}</div>
+                        <div class="activity-meta">{{ last_approved_video.date }}</div>
+                        {% else %}
+                        <div class="activity-info empty">No videos approved yet</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="activity-item">
+                    <i class="fas fa-paper-plane info-icon"></i>
+                    <div class="activity-details">
+                        <div class="activity-title">Latest Submission</div>
+                        {% if latest_submission %}
+                        <div class="activity-info">{{ latest_submission.comment_log.subject }} - Ep {{ latest_submission.comment_log.episode }}</div>
+                        <div class="activity-meta">by {{ latest_submission.submitted_by.username }}</div>
+                        {% else %}
+                        <div class="activity-info empty">No new submissions</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="activity-item">
+                    <i class="fas fa-plus-circle primary-icon"></i>
+                    <div class="activity-details">
+                        <div class="activity-title">Latest Raw Video</div>
+                        {% if last_added_video %}
+                        <div class="activity-info">{{ last_added_video.subject }} - Ep {{ last_added_video.episode }}</div>
+                        <div class="activity-meta">{{ last_added_video.date }}</div>
+                        {% else %}
+                        <div class="activity-info empty">No raw videos added</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 3: On-Duty Supervisors -->
+        <div class="dashboard-panel">
+            <div class="panel-header">
+                <h3><i class="fas fa-user-clock"></i> {% if user_role == 'supervisor' %}Your Schedule Today{% else %}Today's On-Duty Supervisors{% endif %}</h3>
+            </div>
+            <div class="panel-body">
+                {% if on_duty_today %}
+                <ul class="supervisor-list">
+                    {% for schedule in on_duty_today %}
+                    <li class="supervisor-item" data-start-timestamp="{{ schedule.start_datetime_ts }}" data-end-timestamp="{{ schedule.end_datetime_ts }}">
+                        <img src="{{ get_proxy_url(schedule.supervisor.profile_picture) }}" class="supervisor-avatar">
+                        <div class="supervisor-info">
+                            <div class="supervisor-name">{{ schedule.personalized_name }}{% if schedule.is_current_user %} 👤{% endif %}</div>
+                            <div class="supervisor-time">{{ schedule.start_time.strftime('%I:%M %p') }} - {{ schedule.end_time.strftime('%I:%M %p') }}</div>
+                        </div>
+                        <div class="supervisor-status">
+                            <!-- Status will be inserted here -->
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="empty-message">
+                    {% if user_role == 'supervisor' %}You have no scheduled shifts today{% else %}No supervisors scheduled today{% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bottom Panels (Reordered) -->
+    <div class="panel-grid">
+        <!-- Panel 1: Shooting Progress -->
+        {% if show_shooting_progress %}
+        <div class="dashboard-panel">
+            <div class="panel-header">
+                <h3><i class="fas fa-video"></i> Shooting Progress</h3>
+            </div>
+            <div class="panel-body">
+                <div class="progress-summary">
+                    <div class="progress-total">{{ total_shot_count }}</div>
+                    <div class="progress-label">total shot videos</div>
+                </div>
+                <div class="shot-statistics">
+                    <div class="simple-stat">
+                        <div class="stat-percent">{{ shot_statistics.approved.percentage }}%</div>
+                        <div class="stat-desc">Approved</div>
+                    </div>
+                    <div class="simple-stat">
+                        <div class="stat-percent">{{ shot_statistics.under_review.percentage }}%</div>
+                        <div class="stat-desc">Under Review</div>
+                    </div>
+                    <div class="simple-stat">
+                        <div class="stat-percent">{{ shot_statistics.ongoing.percentage }}%</div>
+                        <div class="stat-desc">Ongoing</div>
+                    </div>
+                    <div class="simple-stat">
+                        <div class="stat-percent">{{ shot_statistics.unassigned.percentage }}%</div>
+                        <div class="stat-desc">Unassigned</div>
+                    </div>
+                    <div class="simple-stat">
+                        <div class="stat-percent">{{ shot_statistics.re_editing.percentage }}%</div>
+                        <div class="stat-desc">Re-editing</div>
+                    </div>
+                </div>
+                
+                <!-- Top 3 Subjects Progress -->
+                <div class="top-subjects-progress">
+                    {% for subject in shooting_progress_data|sort(attribute='percentage', reverse=true) %}
+                    {% if loop.index <= 2 %}
+                    <div class="subject-progress-item">
+                        <div class="subject-progress-header">
+                            <span class="subject-name">{{ subject.subject }}</span>
+                            <span class="subject-percentage">{{ subject.percentage }}%</span>
+                        </div>
+                        <div class="subject-progress-bar-container">
+                            <div class="subject-progress-bar" style="width: {{ subject.percentage }}%"></div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+                
+                <a href="#" id="view-shooting-progress-btn" class="assign-button">View All</a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Panel 2: Team Performance -->
+        <div class="dashboard-panel">
+            <div class="panel-header">
+                <h3><i class="fas fa-users"></i> Team Performance</h3>
+            </div>
+            <div class="panel-body">
+                {% if show_editors_in_team %}
+                <!-- Top Editors -->
+                <div class="performance-section">
+                    <div class="section-header">
+                        <h4>🏆 Top Editors (30 days)</h4>
+                    </div>
+                    <div class="team-grid">
+                        {% for editor in editor_leaderboard %}
+                        <div class="team-card">
+                            <img src="{{ get_proxy_url(editor.profile_picture) }}" alt="{{ editor.name }}" class="team-avatar">
+                            <div class="team-info">
+                                <div class="team-name">{{ editor.name }}</div>
+                                <div class="team-count">{{ editor.approved_count }}</div>
+                                <div class="team-label">approved</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Top Supervisors -->
+                <div class="performance-section">
+                    <div class="section-header">
+                        <h4>⭐ Top Supervisors (30 days)</h4>
+                    </div>
+                    <div class="supervisor-horizontal-list">
+                        {% for supervisor in supervisor_leaderboard %}
+                        {% if loop.index <= 2 %}
+                        <div class="supervisor-horizontal-item">
+                            <img src="{{ get_proxy_url(supervisor.profile_picture) }}" alt="{{ supervisor.name }}" class="supervisor-horizontal-avatar">
+                            <div class="supervisor-horizontal-info">
+                                <div class="supervisor-horizontal-name">{{ supervisor.name }}</div>
+                                <div class="supervisor-horizontal-count">{{ supervisor.approved_count }} approved</div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel 4: Unassigned Raw Videos -->
+        <div class="dashboard-panel">
+            <div class="panel-header">
+                <h3><i class="fas fa-inbox"></i> Unassigned Raw Videos</h3>
+            </div>
+            <div class="panel-body unassigned-panel-body">
+                {% if unassigned_raw_count > 0 %}
+                <div class="unassigned-summary">
+                    <div class="unassigned-count">{{ unassigned_raw_count }}</div>
+                    <div class="unassigned-label">unassigned videos</div>
+                </div>
+                {% if unassigned_by_subject %}
+                <div class="subject-breakdown">
+                    {% for subject, count in unassigned_by_subject %}
+                    <div class="simple-stat">
+                        <div class="stat-percent">{{ count }}</div>
+                        <div class="stat-desc">{{ subject }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <!-- Recent Unassigned Section -->
+                {% if recent_unassigned_data %}
+                <div class="latest-episodes">
+                    <div class="latest-episodes-header">Recent Unassigned:</div>
+                    <div class="latest-episodes-list">
+                        {% for video in recent_unassigned_data %}
+                        <div class="episode-item">
+                            <div class="episode-name">{{ video.name }}</div>
+                            <div class="episode-date">{{ video.date }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <a href="{{ url_for('dashboard_raw_videos') }}" class="assign-button">Assign now</a>
+                {% else %}
+                <div class="empty-message success">
+                    <i class="fas fa-check-circle"></i>
+                    All raw videos assigned
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Details -->
+<div id="details-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modal-title">Details</h2>
+            <span class="close-button">&times;</span>
+        </div>
+        <div id="modal-body">
+            <div class="loader"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Supervisor Schedule -->
+<div id="supervisor-schedule-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-calendar-alt icon-header"></i> Supervisor Schedule</h2>
+            <span class="close-button">&times;</span>
+        </div>
+        <div class="modal-body" id="supervisor-schedule-modal-body">
+            <!-- Content will be loaded here -->
+            <div class="loader"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Shooting Progress -->
+<div id="shooting-progress-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Shooting Progress</h2>
+            <span class="close-button">&times;</span>
+        </div>
+        <div id="modal-body">
+            <ul class="modal-progress-list">
+                {% for item in shooting_progress_data|sort(attribute='percentage', reverse=true) %}
+                <li class="progress-item {% if item.percentage >= 80 %}high-progress{% elif item.percentage >= 40 %}medium-progress{% else %}low-progress{% endif %}">
+                    <div class="item-subject">{{ item.subject }}</div>
+                    <div class="progress-stats">
+                        <span class="item-count">{{ item.shot_count }} of {{ item.total_episodes }}</span>
+                        <span class="item-percentage">{{ item.percentage }}%</span>
+                    </div>
+                    <div class="progress-bar-wrapper">
+                        <div class="mini-progress-bar-container">
+                            <div class="mini-progress-bar {% if item.percentage >= 80 %}green{% elif item.percentage >= 40 %}yellow{% else %}red{% endif %}" data-percentage="{{ item.percentage }}"></div>
+                        </div>
+                    </div>
+                </li>
+                {% else %}
+                <li class="empty-message">No shooting progress data available.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+
+<style>
+/* Base Styles */
+:root {
+    --primary-color: #37b3ba;
+    --primary-light: rgba(55, 179, 186, 0.1);
+    --text-color: #333;
+    --text-light: #666;
+    --border-color: #e0e0e0;
+    --bg-color: #f9f9f9;
+    --card-bg: #fff;
+    --success-color: #28a745;
+    --success-light: rgba(40, 167, 69, 0.1);
+    --info-color: #17a2b8;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --danger-light: rgba(220, 53, 69, 0.1);
+    --grey-light: #f8f9fa;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+}
+
+/* Header (unchanged) */
+.user-promo-header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 1.5rem 2rem;
+    border-radius: 0;
+}
+
+.user-promo-header h1 {
+    margin: 0;
+    font-size: 1.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.user-promo-header .subtitle {
+    margin: 0.25rem 0 0;
+    font-size: 0.95rem;
+    opacity: 0.9;
+}
+
+/* Main Container */
+.dashboard-container {
+    padding: 1.5rem 2rem;
+    max-width: 1800px;
+    margin: 0 auto;
+}
+
+/* Stat Cards - Cleaned Up */
+.stat-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    flex: 1;
+    min-width: 180px;
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.stat-card.stat-card-approved {
+    background-color: var(--success-light);
+    border-left: 4px solid var(--success-color);
+}
+.stat-card.stat-card-approved .stat-icon {
+    color: var(--success-color);
+}
+
+.stat-card.highlight {
+    background-color: var(--primary-light);
+    border-left: 4px solid var(--primary-color);
+}
+
+.stat-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-title {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.stat-description {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    margin-top: 0.25rem;
+}
+
+.stat-icon {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    opacity: 0.8;
+}
+
+/* Panel Layout */
+.panel-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    align-items: stretch;
+}
+
+.dashboard-panel {
+    flex: 1;
+    min-width: 320px;
+    background: var(--card-bg);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    height: auto;
+}
+
+.dashboard-panel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+.panel-header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #2a8b91 100%);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-bottom: none;
+    flex-shrink: 0;
+}
+
+.panel-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.panel-body {
+    padding: 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Data Lists */
+.data-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.data-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.data-item:last-child {
+    border-bottom: none;
+}
+
+.data-label {
+    font-weight: 500;
+}
+
+.data-value {
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+/* Activity Items */
+.activity-item {
+    display: flex;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-details {
+    flex: 1;
+}
+
+.activity-title {
+    font-weight: 500;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.activity-info {
+    font-size: 0.95rem;
+}
+
+.activity-meta {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.success-icon {
+    color: var(--success-color);
+}
+
+.info-icon {
+    color: var(--info-color);
+}
+
+.primary-icon {
+    color: var(--primary-color);
+}
+
+/* Supervisor Section */
+.supervisor-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.supervisor-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    transition: background-color 0.3s ease;
+}
+
+.supervisor-item.shift-ongoing {
+    background-color: var(--success-light);
+}
+.supervisor-item.shift-ended {
+    background-color: var(--danger-light);
+    opacity: 0.7;
+}
+.supervisor-item.shift-upcoming {
+    background-color: var(--grey-light);
+}
+
+.supervisor-item:last-child {
+    border-bottom: none;
+}
+
+.supervisor-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.supervisor-info {
+    flex: 1;
+}
+
+.supervisor-name {
+    font-weight: 500;
+}
+
+.supervisor-time {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.supervisor-status {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+.supervisor-status.status-ongoing { color: var(--success-color); }
+.supervisor-status.status-ended { color: var(--danger-color); }
+.supervisor-status.status-upcoming { color: var(--text-light); }
+
+/* Leaderboard */
+.leaderboard-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.leaderboard-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.leaderboard-item:last-child {
+    border-bottom: none;
+}
+
+.leaderboard-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.leaderboard-info {
+    flex: 1;
+}
+
+.leaderboard-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+}
+
+.leaderboard-count {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.leaderboard-bar {
+    width: 60px;
+    height: 6px;
+    background: #e9ecef;
+    border-radius: 3px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.leaderboard-progress {
+    height: 100%;
+    background: var(--primary-color);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+/* Bottom Panels */
+.bottom-panels {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* Revert back to equal columns */
+    gap: 1.5rem;
+    align-items: start;
+}
+
+@media (max-width: 1200px) {
+    .bottom-panels {
+        grid-template-columns: 1fr;
+    }
+}
+
+.shooting-progress-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Enhanced styling for the shooting progress panel */
+.shooting-progress-enhanced {
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.shooting-progress-enhanced .progress-summary {
+    margin-bottom: 1.5rem;
+}
+
+.shooting-progress-enhanced .progress-total {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.shooting-progress-enhanced .progress-label {
+    font-size: 1.1rem;
+    color: var(--text-light);
+    margin-bottom: 0.5rem;
+}
+
+.shooting-progress-enhanced .progress-list-summary {
+    margin: 1.5rem 0;
+}
+
+.shooting-progress-enhanced .progress-item-summary {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.shooting-progress-enhanced .progress-item-summary:last-child {
+    border-bottom: none;
+}
+
+.shooting-progress-enhanced .progress-subject-summary {
+    width: 100px;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.shooting-progress-enhanced .progress-percent-summary {
+    font-size: 1rem;
+    font-weight: 600;
+    width: 50px;
+}
+
+.panel-button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+.panel-button:hover {
+    background-color: #2a8b91; /* primary-dark */
+}
+
+/* Unassigned Videos */
+.unassigned-summary {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 0.75rem;
+}
+
+.unassigned-count {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 0.25rem;
+}
+
+.unassigned-label {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin-bottom: 0;
+}
+
+.assign-button {
+    display: inline-block;
+    background: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    text-align: center;
+    margin-top: 0.75rem;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.assign-button:hover {
+    background: #2a8b91;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(52, 144, 220, 0.2);
+    text-decoration: none;
+    color: white;
+}
+
+.subject-breakdown {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin: 0.75rem 0;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+}
+
+/* Compressed unassigned panel */
+.unassigned-panel-body {
+    padding: 1rem 1.5rem;
+}
+
+/* Latest Episodes */
+.latest-episodes {
+    margin: 0.75rem 0;
+    padding: 0;
+}
+
+.latest-episodes-header {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    padding: 0 0.5rem;
+}
+
+.latest-episodes-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.episode-item {
+    font-size: 0.8rem;
+    color: #495057;
+    padding: 0.5rem;
+    border-bottom: 1px solid #f1f3f4;
+    font-weight: 500;
+    background: #ffffff;
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.episode-item:last-child {
+    border-bottom: none;
+}
+
+.episode-item:hover {
+    background: #f8f9fa;
+}
+
+.episode-name {
+    font-weight: 600;
+}
+
+.episode-date {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+/* Team Performance */
+.performance-section {
+    margin-bottom: 2rem;
+}
+
+.performance-section:last-child {
+    margin-bottom: 0;
+}
+
+.section-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.section-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.team-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.team-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: var(--primary-color);
+}
+
+.team-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 0.75rem;
+    border: 2px solid #e9ecef;
+}
+
+.team-info {
+    text-align: center;
+}
+
+.team-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.team-count {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 0.25rem;
+}
+
+.team-label {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.active-subjects {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.active-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+    min-width: 100px;
+}
+
+.active-subject {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #495057;
+    margin-bottom: 0.5rem;
+}
+
+.active-count {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+/* Badge Styling */
+.pending-badge {
+    background-color: #fff3cd;
+    color: #856404;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: 1px solid #ffeaa7;
+}
+
+.unassigned-badge {
+    background-color: #e7f3ff;
+    color: #0056b3;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: 1px solid #b3d9ff;
+}
+
+.approved-badge {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: 1px solid #c3e6cb;
+}
+
+.stat-number {
+    font-size: 4rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+    line-height: 1;
+}
+
+/* Progress Summary in Panel */
+.progress-summary {
+    text-align: center;
+}
+
+.progress-total {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.progress-label {
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+/* Shot Statistics */
+.shot-statistics {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.simple-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 0;
+}
+
+.stat-percent {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.stat-desc {
+    font-size: 0.8rem;
+    color: var(--text-light);
+    text-align: center;
+}
+
+/* Top Subjects Progress */
+.top-subjects-progress {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: #f8fdf8;
+    border-radius: 8px;
+    border: 1px solid #e9f2e9;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.subject-progress-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.subject-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.subject-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #28a745;
+}
+
+.subject-percentage {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #28a745;
+}
+
+.subject-progress-bar-container {
+    height: 6px;
+    background: #e8f5e8;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.subject-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #28a745, #34ce57);
+    border-radius: 3px;
+    transition: width 0.6s ease;
+}
+
+/* Empty States */
+.empty-message {
+    padding: 1.5rem 0;
+    text-align: center;
+    color: var(--text-light);
+    font-style: italic;
+}
+
+.empty-message.success {
+    color: var(--success-color);
+}
+
+.empty-message i {
+    display: block;
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.7;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background: white;
+    margin: 8% auto;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    width: 90%;
+    max-width: 800px;
+    position: relative;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { transform: translateY(-30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-header {
+    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg, var(--primary-color) 0%, #2a8b91 100%);
+    color: white;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 600;
+}
+
+.modal-header .close-button {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+.modal-header .close-button:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+#modal-body {
+    padding: 2rem;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* Enhanced Modal Shooting Progress List Styles */
+.modal-progress-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.75rem;
+    align-items: start;
+}
+
+.modal-progress-list .progress-item {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 1rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.modal-progress-list .progress-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+    border-color: #dee2e6;
+}
+
+.modal-progress-list .progress-item.high-progress {
+    background: #f0f9f0;
+    border-color: #90ee90;
+}
+
+.modal-progress-list .progress-item.medium-progress {
+    background: #f8f9fa;
+    border-color: #6c757d;
+}
+
+.modal-progress-list .progress-item.low-progress {
+    background: #f8f9fa;
+    border-color: #6c757d;
+}
+
+.modal-progress-list .item-subject {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.modal-progress-list .progress-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.modal-progress-list .item-count {
+    font-size: 0.9rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+.modal-progress-list .item-percentage {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.modal-progress-list .progress-bar-wrapper {
+    margin-top: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #f1f3f4;
+}
+
+.modal-progress-list .mini-progress-bar-container {
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+}
+
+.modal-progress-list .mini-progress-bar {
+    height: 100%;
+    border-radius: 12px;
+    transition: width 0.4s ease;
+    position: relative;
+}
+
+.mini-progress-bar.green { background-color: var(--success-color); }
+.mini-progress-bar.yellow { background-color: var(--warning-color); }
+.mini-progress-bar.red { background-color: #dc3545; }
+
+/* Summary list in the panel */
+.progress-list-summary {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.progress-item-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.progress-subject-summary {
+    width: 80px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.progress-percent-summary {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    width: 40px;
+    text-align: right;
+}
+
+.panel-link {
+    display: block;
+    text-align: right;
+    margin-top: 1rem;
+    color: var(--primary-color);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.panel-link:hover {
+    text-decoration: underline;
+}
+
+/* Table styles within modal */
+.details-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.details-table th,
+.details-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.details-table th {
+    background-color: #f9f9f9;
+    font-weight: 600;
+    color: #495057;
+}
+
+.details-table .user-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.details-table .user-cell img {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.details-table .progress-cell {
+    width: 30%;
+    min-width: 200px;
+}
+
+.details-table .progress-cell-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.loader {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 2rem auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.mini-progress-bar-container {
+    flex-grow: 1;
+    height: 12px;
+    background-color: #e9ecef;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.mini-progress-bar {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.5s ease;
+}
+
+.avatar-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.empty {
+    color: var(--text-light);
+    font-style: italic;
+    text-align: center;
+    padding: 2rem;
+}
+
+/* Modal body styling */
+.modal-body {
+    padding: 2rem;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* Horizontal Supervisor List */
+.supervisor-horizontal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.supervisor-horizontal-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.supervisor-horizontal-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-color: var(--primary-color);
+}
+
+.supervisor-horizontal-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e9ecef;
+    flex-shrink: 0;
+}
+
+.supervisor-horizontal-info {
+    flex: 1;
+}
+
+.supervisor-horizontal-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #495057;
+    margin-bottom: 0.25rem;
+}
+
+.supervisor-horizontal-count {
+    font-size: 0.85rem;
+    color: var(--primary-color);
+    font-weight: 600;
+    background: #e7f3ff;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid #b3d9ff;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Supervisor Shift Status & Countdown ---
+    function updateSupervisorStatus() {
+        const supervisorItems = document.querySelectorAll('.supervisor-item');
+        
+        supervisorItems.forEach(item => {
+            const startTime = parseInt(item.dataset.startTimestamp, 10) * 1000;
+            const endTime = parseInt(item.dataset.endTimestamp, 10) * 1000;
+            const now = new Date().getTime();
+            const statusElement = item.querySelector('.supervisor-status');
+
+            if (!statusElement) return;
+
+            item.classList.remove('shift-ongoing', 'shift-ended', 'shift-upcoming');
+            statusElement.classList.remove('status-ongoing', 'status-ended', 'status-upcoming');
+
+            if (now > endTime) {
+                // Shift has ended
+                item.classList.add('shift-ended');
+                statusElement.classList.add('status-ended');
+                statusElement.textContent = 'Shift Ended';
+            } else if (now < startTime) {
+                // Shift is upcoming
+                item.classList.add('shift-upcoming');
+                statusElement.classList.add('status-upcoming');
+                const distance = startTime - now;
+                const hours = Math.floor(distance / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                
+                let textParts = [];
+                if (hours > 0) {
+                    textParts.push(`${hours}h`);
+                }
+                if (minutes > 0) {
+                    textParts.push(`${minutes}m`);
+                }
+
+                if (textParts.length === 0) {
+                    statusElement.textContent = 'Starts in <1m';
+                } else {
+                    statusElement.textContent = `Starts in ${textParts.join(' ')}`;
+                }
+            } else {
+                // Shift is ongoing
+                item.classList.add('shift-ongoing');
+                statusElement.classList.add('status-ongoing');
+                const distance = endTime - now;
+                const hours = Math.floor(distance / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                
+                let textParts = [];
+                if (hours > 0) {
+                    textParts.push(`${hours}h`);
+                }
+                if (minutes > 0) {
+                    textParts.push(`${minutes}m`);
+                }
+
+                if (textParts.length === 0) {
+                    statusElement.textContent = '<1m left';
+                } else {
+                    statusElement.textContent = `${textParts.join(' ')} left`;
+                }
+            }
+        });
+    }
+
+    if (document.querySelector('.supervisor-item')) {
+        updateSupervisorStatus();
+        setInterval(updateSupervisorStatus, 60000);
+    }
+
+    // --- Modal Logic for Stat Cards ---
+    const detailsModal = document.getElementById('details-modal');
+    const supervisorScheduleModal = document.getElementById('supervisor-schedule-modal');
+
+    if (detailsModal) {
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+        const closeButton = detailsModal.querySelector('.close-button');
+
+        document.querySelectorAll('.stat-card').forEach(card => {
+            card.addEventListener('click', async function(e) {
+                const status = this.dataset.status;
+                if (!status) return;
+
+                if (status === 'schedule') {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    const modalBody = document.getElementById('supervisor-schedule-modal-body');
+                    supervisorScheduleModal.style.display = 'block';
+                    modalBody.innerHTML = '<div class="loader"></div>';
+
+                    try {
+                        const response = await fetch('/api/supervisor_schedule');
+                        const schedules = await response.json();
+
+                        if (!response.ok || schedules.length === 0) {
+                            modalBody.innerHTML = `<p class="empty">No schedules found.</p>`;
+                            return;
+                        }
+
+                        let tableHTML = '<table class="details-table"><thead><tr><th>Day</th><th>Time</th><th>Supervisor</th><th>Assigned Subjects</th></tr></thead><tbody>';
+                        schedules.forEach(s => {
+                            tableHTML += `
+                                <tr>
+                                    <td><strong>${s.day}</strong></td>
+                                    <td>${s.time}</td>
+                                    <td>
+                                        <div class="user-cell">
+                                            <img src="${s.supervisor_pic}" class="avatar-small" alt="${s.supervisor_name}">
+                                            <span>${s.supervisor_name}</span>
+                                        </div>
+                                    </td>
+                                    <td>${s.subjects}</td>
+                                </tr>`;
+                        });
+                        tableHTML += '</tbody></table>';
+                        modalBody.innerHTML = tableHTML;
+                    } catch (error) {
+                        modalBody.innerHTML = `<p class="empty">An error occurred while fetching the schedule.</p>`;
+                        console.error("Supervisor schedule modal error:", error);
+                    }
+                    return;
+                }
+                
+                e.stopPropagation();
+
+                modalTitle.textContent = 'Loading...';
+                modalBody.innerHTML = '<div class="loader"></div>';
+                detailsModal.style.display = 'block';
+
+                const statusTitleMap = {
+                    'subjects': 'All Subjects',
+                    'pending': 'Pending Videos',
+                    'under_review': 'Videos Under Review',
+                    'approved': 'Approved Videos'
+                };
+                
+                const titleText = statusTitleMap[status] || 'Details';
+                modalTitle.textContent = titleText;
+
+                try {
+                    const response = await fetch(`/api/dashboard_details?status=${status}`);
+                    const data = await response.json();
+
+                    if (!response.ok || !data.results || data.results.length === 0) {
+                        modalBody.innerHTML = `<p class="empty">${data.error || 'No items found for this category.'}</p>`;
+                        return;
+                    }
+
+                    let tableHTML = '<table class="details-table"><thead><tr>';
+                    data.headers.forEach(header => { tableHTML += `<th>${header}</th>`; });
+                    tableHTML += '</tr></thead><tbody>';
+
+                    data.results.forEach(row => {
+                        tableHTML += '<tr>';
+                        data.keys.forEach(key => {
+                            const cellData = row[key];
+                            if ((key === 'editor' || key === 'supervisor') && typeof cellData === 'object' && cellData !== null) {
+                                tableHTML += `<td><div class="user-cell"><img src="${cellData.pic}" alt="${cellData.name}"><span>${cellData.name}</span></div></td>`;
+                            } else if (key === 'percentage' && typeof cellData === 'object' && cellData !== null) {
+                                tableHTML += `<td class="progress-cell"><div class="progress-cell-content"><div class="mini-progress-bar-container"><div class="mini-progress-bar ${cellData.color_class}" style="width: ${cellData.value}%"></div></div><span style="font-weight: 600;">${cellData.value}%</span></div></td>`;
+                            } else {
+                                tableHTML += `<td>${cellData || 'N/A'}</td>`;
+                            }
+                        });
+                        tableHTML += '</tr>';
+                    });
+
+                    tableHTML += '</tbody></table>';
+                    modalBody.innerHTML = tableHTML;
+
+                } catch (error) {
+                    modalTitle.textContent = 'Error';
+                    modalBody.innerHTML = `<p class="empty">An error occurred while fetching details.</p>`;
+                    console.error("Dashboard modal error:", error);
+                }
+            });
+        });
+
+        closeButton.addEventListener('click', () => { detailsModal.style.display = 'none'; });
+        
+        window.addEventListener('click', (event) => {
+            if (event.target == detailsModal) {
+                detailsModal.style.display = 'none';
+            }
+        });
+    }
+
+    if (supervisorScheduleModal) {
+        const closeBtn = supervisorScheduleModal.querySelector('.close-button');
+        closeBtn.addEventListener('click', () => {
+            supervisorScheduleModal.style.display = 'none';
+        });
+        window.addEventListener('click', (event) => {
+            if (event.target == supervisorScheduleModal) {
+                supervisorScheduleModal.style.display = 'none';
+            }
+        });
+    }
+
+    // --- Shooting Progress Modal ---
+    const shootingModal = document.getElementById('shooting-progress-modal');
+    const openShootingModalBtn = document.getElementById('view-shooting-progress-btn');
+
+    if (shootingModal && openShootingModalBtn) {
+        const closeShootingModalBtn = shootingModal.querySelector('.close-button');
+
+        openShootingModalBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            shootingModal.style.display = 'block';
+        });
+
+        closeShootingModalBtn.addEventListener('click', () => {
+            shootingModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === shootingModal) {
+                shootingModal.style.display = 'none';
+            }
+        });
+    }
+
+    // --- Set progress bar styles from data attributes to fix linter issues ---
+    document.querySelectorAll('.mini-progress-bar[data-percentage]').forEach(bar => {
+        bar.style.width = bar.dataset.percentage + '%';
+        if (bar.dataset.color) {
+            bar.style.backgroundColor = bar.dataset.color;
+        }
+    });
+});
+</script>
+
+{% endblock %}

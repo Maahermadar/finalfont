@@ -1,0 +1,144 @@
+{% extends "dashboard_base.html" %}
+{% block dashboard_content %}
+
+<div class="activity-log-container">
+    <div class="activity-log-header">
+        <h1><i class="fas fa-history icon-header"></i> Activity Log</h1>
+        <p class="subtitle">A detailed record of all user actions.</p>
+    </div>
+
+    <div class="activity-table-container">
+        <table class="activity-table">
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td class="timestamp-cell" title="{{ log.timestamp | localtime }}">
+                        {{ (log.timestamp | localtime).strftime('%b %d, %Y, %I:%M %p') }}
+                    </td>
+                    <td class="user-cell">
+                        {{ log.username }} {% if log.is_admin %}<span class="admin-badge">Admin</span>{% endif %}
+                    </td>
+                    <td class="action-cell">
+                        {{ log.action }}
+                    </td>
+                    <td class="status-cell">
+                        <span class="status-badge status-{{ log.status | lower }}">{{ log.status }}</span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="no-logs">
+                        <i class="fas fa-file-alt"></i> No activity recorded yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.activity-log-container {
+    padding: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.activity-log-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.activity-log-header h1 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #343a40;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.activity-log-header .subtitle {
+    font-size: 1rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.activity-table-container {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    overflow: hidden;
+}
+
+.activity-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.activity-table th {
+    background: #f8f9fa;
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+}
+
+.activity-table td {
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.activity-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.activity-table tbody tr:hover {
+    background-color: #f1f3f5;
+}
+
+.admin-badge {
+    background-color: #dc3545;
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+}
+
+.status-badge {
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    font-weight: 500;
+    font-size: 0.8rem;
+}
+
+.status-success {
+    background-color: rgba(40, 167, 69, 0.15);
+    color: #1a7431;
+}
+
+.status-denied {
+    background-color: rgba(220, 53, 69, 0.15);
+    color: #b02a37;
+}
+
+.no-logs {
+    text-align: center;
+    padding: 3rem;
+    color: #6c757d;
+}
+</style>
+
+{% endblock %} 

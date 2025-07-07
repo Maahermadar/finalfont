@@ -1,0 +1,1230 @@
+{% extends "dashboard_base.html" %}
+{% block dashboard_content %}
+
+<div class="user-promo-container">
+    <!-- Header with colored background -->
+    <div class="user-promo-header">
+        <div class="header-content">
+            <h1><i class="fas fa-users-cog icon-header"></i> User Management</h1>
+            <p class="subtitle">Manage user roles and permissions</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-primary btn-add-user">
+                <i class="fas fa-user-plus"></i> Add User
+            </button>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true, category_filter=['user_promo_success', 'user_promo_danger']) %}
+        {% if messages %}
+            <div class="flash-messages-promo">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                        <div class="alert-content">
+                            <div class="alert-message">{{ message }}</div>
+                            <div class="alert-timestamp">{{ now.strftime('%b %d, %Y %I:%M %p') }}</div>
+                        </div>
+                        <button class="close-btn" onclick="this.parentElement.remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <!-- User Table -->
+    <div class="user-table-container">
+        <table class="user-table">
+            <thead>
+                <tr>
+                    <th>User ID</th>
+                    <th>Avatar</th>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Last Activity</th>
+                    <th>Actions</th>
+                    <th>Reset</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr data-user-id="{{ user.id }}">
+                    <td>{{ user.id }}</td>
+                    <td class="avatar-cell">
+                        <img src="{{ url_for('serve_profile_image', filename=user.profile_picture or 'default.png') }}" alt="{{ user.username }}'s avatar" class="user-avatar-small">
+                    </td>
+                    <td class="username-cell">
+                        {% if user.is_currently_active %}
+                            <span class="active-indicator" title="Active now"></span>
+                        {% endif %}
+                        {{ user.username }}
+                    </td>
+                    <td class="role-cell">
+                        <span class="role-badge role-{{ user.role }}">{{ user.role.replace('_', ' ') | title }}</span>
+                    </td>
+                    <td class="activity-cell">
+                        {% if user.is_currently_active %}
+                            <span class="active-now">
+                                <i class="fas fa-circle active-icon"></i> Active now
+                            </span>
+                        {% elif user.last_login %}
+                            <div class="login-time-container">
+                                <span class="last-login-date">
+                                    {% set login_date = user.last_login | localtime | a_day_in_the_past %}
+                                    {% if login_date == (now | localtime | a_day_in_the_past) %}
+                                        Today
+                                    {% elif login_date == ((now - timedelta(days=1)) | localtime | a_day_in_the_past) %}
+                                        Yesterday
+                                    {% else %}
+                                        {{ (user.last_login | localtime).strftime('%b %d, %Y') }}
+                                    {% endif %}
+                                </span>
+                                <span class="last-login-time">{{ (user.last_login | localtime).strftime('%I:%M %p') }}</span>
+                            </div>
+                        {% else %}
+                            <span class="never-logged">Never logged in</span>
+                        {% endif %}
+                    </td>
+                    <td class="actions-cell">
+                        <button class="btn-action btn-edit" title="Edit user">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-action btn-delete" title="Delete user">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                    <td>
+                        <button class="btn-action btn-reset" onclick="showResetModal('{{ user.id }}', '{{ user.username }}')">
+                            <i class="fas fa-key"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="no-users">
+                        <i class="fas fa-user-slash no-users-icon"></i>
+                        No users found
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Container for client-side flash messages -->
+<div id="client-flash-container"></div>
+
+<!-- Edit User Modal -->
+<div id="edit-user-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-user-edit"></i> Edit User</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <form id="edit-user-form" enctype="multipart/form-data">
+                <input type="hidden" id="edit-user-id">
+                <div class="form-group avatar-form-group">
+                    <label>Avatar</label>
+                    <div class="avatar-upload">
+                        <div class="avatar-preview">
+                            <img src="" alt="User Avatar" id="edit-avatar-preview">
+                        </div>
+                        <div class="avatar-edit">
+                            <input type='file' id="edit-avatar-upload" name="avatar" accept=".png, .jpg, .jpeg">
+                            <label for="edit-avatar-upload"><i class="fas fa-pencil-alt"></i></label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-username">Username</label>
+                    <input type="text" id="edit-username" name="username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-role">Role</label>
+                    <select id="edit-role" name="role" class="form-control" required>
+                        {% for role in available_roles %}
+                        <option value="{{ role }}">{{ role.replace('_', ' ') | title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-notice">
+                    <i class="fas fa-info-circle"></i> Changes will take effect immediately
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="save-user-btn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div id="add-user-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-user-plus"></i> Add New User</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+            <form id="add-user-form" enctype="multipart/form-data">
+                <div class="form-group avatar-form-group">
+                    <label>Avatar</label>
+                    <div class="avatar-upload">
+                        <div class="avatar-preview">
+                            <img src="{{ url_for('serve_profile_image', filename='default.png') }}" alt="Default Avatar" id="add-avatar-preview">
+                        </div>
+                        <div class="avatar-edit">
+                            <input type='file' id="add-avatar-upload" name="avatar" accept=".png, .jpg, .jpeg">
+                            <label for="add-avatar-upload"><i class="fas fa-pencil-alt"></i></label>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="new-username">Username</label>
+                    <input type="text" id="new-username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="new-password">Password</label>
+                    <div class="password-input-container">
+                        <input type="password" id="new-password" class="form-control" required>
+                        <button type="button" class="toggle-password" title="Show password">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="new-role">Role</label>
+                    <select id="new-role" class="form-control" required>
+                        {% for role in available_roles %}
+                        <option value="{{ role }}">{{ role.replace('_', ' ') | title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-notice">
+                    <i class="fas fa-info-circle"></i> Changes will take effect immediately
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="create-user-btn">Create User</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('deleteModal')">&times;</span>
+        <h3 class="modal-title-danger"><i class="fas fa-exclamation-triangle"></i> Confirm Deletion</h3>
+        <p>Are you sure you want to delete the user <strong id="delete-username"></strong>? This action cannot be undone.</p>
+        <div class="modal-footer">
+            <button class="btn btn-secondary modal-cancel">Cancel</button>
+            <button class="btn btn-danger" id="confirm-delete-btn">Delete User</button>
+        </div>
+    </div>
+</div>
+
+<!-- Password Reset Modal -->
+<div id="resetModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('resetModal')">&times;</span>
+        <h3 class="modal-title-warning"><i class="fas fa-key"></i> Confirm Password Reset</h3>
+        <p>Are you sure you want to reset the password for <strong id="resetUserName"></strong>? They will be required to create a new password on their next login.</p>
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeModal('resetModal')">Cancel</button>
+            <button class="btn btn-warning" onclick="confirmReset()">Reset Password</button>
+        </div>
+    </div>
+</div>
+
+<style>
+:root {
+    /* Primary Color Palette */
+    --primary: #37b3ba;
+    --primary-light: #5ac1c7;
+    --primary-dark: #2a8b91;
+    --primary-extra-dark: #1e6368;
+    --primary-bg: rgba(55, 179, 186, 0.1);
+    
+    /* Status Colors */
+    --success: #28a745;
+    --success-bg: rgba(40, 167, 69, 0.1);
+    --danger: #dc3545;
+    --danger-bg: rgba(220, 53, 69, 0.1);
+    --warning: #ffc107;
+    --warning-bg: rgba(255, 193, 7, 0.1);
+    --info: #17a2b8;
+    --info-bg: rgba(23, 162, 184, 0.1);
+    
+    /* Neutral Colors */
+    --white: #ffffff;
+    --light-gray: #f8f9fa;
+    --medium-gray: #6c757d;
+    --dark-gray: #343a40;
+    --border-color: #dee2e6;
+    
+    /* UI Variables */
+    --border-radius: 0.5rem;
+    --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    --transition: all 0.2s ease;
+}
+
+/* Main Container */
+.user-promo-container {
+    padding: 0;
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    max-width: 1200px;
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+/* Header with Gradient Background */
+.user-promo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    background: var(--primary);
+    color: white;
+}
+
+.user-promo-header h1 {
+    font-size: 1.75rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: white;
+}
+
+.user-promo-header .subtitle {
+    margin-top: 0.25rem;
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.user-promo-header .btn-primary {
+    padding: 0.8rem 1.5rem;
+    font-size: 0.95rem;
+    background: white;
+    color: var(--primary-dark);
+    font-weight: 600;
+}
+
+.user-promo-header .btn-primary:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Buttons */
+.btn {
+    padding: 0.6rem 1.2rem;
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid transparent;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: var(--light-gray);
+    color: var(--dark-gray);
+    border-color: var(--border-color);
+}
+
+.btn-secondary:hover {
+    background: var(--border-color);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+/* Table Styles */
+.user-table-container {
+    overflow-x: auto;
+    padding: 0 1rem;
+}
+
+.user-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    margin: 1rem 0;
+}
+
+.user-table th, .user-table td {
+    padding: 1rem 1.25rem;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.user-table th {
+    background: var(--light-gray);
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--primary-extra-dark);
+    position: sticky;
+    top: 0;
+}
+
+.user-table tr:last-child td {
+    border-bottom: none;
+}
+
+.user-table tr:hover {
+    background: var(--primary-bg);
+}
+
+/* Role Badges */
+.role-badge {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.role-operator_admin {
+    background: var(--danger-bg);
+    color: var(--danger);
+}
+
+.role-manager {
+    background: rgba(111, 66, 193, 0.1);
+    color: #6f42c1;
+}
+
+.role-supervisor {
+    background: var(--warning-bg);
+    color: #d35400;
+}
+
+.role-editor {
+    background: var(--info-bg);
+    color: var(--primary-dark);
+}
+
+/* Activity Cell */
+.activity-cell {
+    white-space: nowrap;
+}
+
+.login-time-container {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.last-login-date {
+    font-weight: 500;
+}
+
+.last-login-time {
+    color: var(--medium-gray);
+    font-size: 0.9em;
+}
+
+/* Active Indicators */
+.active-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--success);
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    box-shadow: 0 0 0 2px var(--success-bg);
+}
+
+.active-now {
+    color: var(--success);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.active-icon {
+    font-size: 0.6rem;
+}
+
+.never-logged {
+    color: var(--medium-gray);
+    font-style: italic;
+}
+
+/* Action Buttons */
+.actions-cell {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-action {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-action i {
+    font-size: 1.1rem;
+}
+
+.btn-action:hover {
+    background: var(--light-gray);
+    border-color: var(--border-color);
+    transform: translateY(-1px);
+}
+
+.btn-action.btn-edit:hover {
+    background-color: #0056b3;
+}
+
+.btn-action.btn-reset {
+    background-color: #ffc107; /* A distinct warning color */
+}
+
+.btn-action.btn-reset:hover {
+    background-color: #e0a800;
+}
+
+.btn-delete {
+    color: var(--danger);
+}
+
+/* No Users */
+.no-users {
+    text-align: center;
+    padding: 2rem;
+    color: var(--medium-gray);
+}
+
+.no-users-icon {
+    font-size: 1.5rem;
+    margin-right: 0.5rem;
+}
+
+/* Flash Messages */
+.flash-messages-promo {
+    padding: 0 2rem;
+    margin-top: 1rem;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    position: relative;
+    border-left: 4px solid transparent;
+}
+
+.alert-success {
+    background: var(--success-bg);
+    color: var(--success);
+    border-left-color: var(--success);
+}
+
+.alert-danger {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border-left-color: var(--danger);
+}
+
+.alert-warning {
+    background: var(--warning-bg);
+    color: #d35400;
+    border-left-color: var(--warning);
+}
+
+.alert-info {
+    background: var(--info-bg);
+    color: var(--primary-dark);
+    border-left-color: var(--primary);
+}
+
+.alert-content {
+    flex: 1;
+}
+
+.alert-message {
+    font-weight: 500;
+}
+
+.alert-timestamp {
+    font-size: 0.8rem;
+    color: var(--medium-gray);
+    margin-top: 0.25rem;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: inherit;
+    opacity: 0.7;
+    padding: 0.25rem;
+}
+
+.close-btn:hover {
+    opacity: 1;
+}
+
+/* Modals */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.modal-content {
+    background: white;
+    border-radius: var(--border-radius);
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    animation: modalFadeIn 0.3s;
+    overflow: hidden;
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.modal-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--light-gray);
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--medium-gray);
+    padding: 0.25rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+/* Form Elements */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--dark-gray);
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    transition: var(--transition);
+    background-color: white;
+}
+
+select.form-control {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(55, 179, 186, 0.25);
+}
+
+.password-input-container {
+    position: relative;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--medium-gray);
+    cursor: pointer;
+}
+
+.form-notice {
+    padding: 0.75rem;
+    background: var(--light-gray);
+    border-radius: var(--border-radius);
+    font-size: 0.9rem;
+    color: var(--medium-gray);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.delete-warning {
+    display: flex;
+    gap: 0.75rem;
+    background: var(--danger-bg);
+    padding: 0.75rem;
+    border-radius: var(--border-radius);
+    margin-top: 1rem;
+    color: var(--danger);
+}
+
+.delete-warning i {
+    font-size: 1.25rem;
+}
+
+.delete-warning p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .user-promo-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1.25rem;
+    }
+    
+    .user-table th, 
+    .user-table td {
+        padding: 0.75rem;
+    }
+    
+    .login-time-container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-footer {
+        flex-direction: column;
+    }
+    
+    .modal-footer .btn {
+        width: 100%;
+    }
+}
+
+.modal-title-danger {
+    color: #dc3545; /* Red */
+}
+
+.modal-title-warning {
+    color: #ffc107; /* Yellow/Orange */
+}
+
+.btn-warning {
+    background-color: #ffc107;
+    color: #212529; /* Dark text for better contrast on yellow */
+}
+
+.btn-warning:hover {
+    background-color: #e0a800;
+}
+
+/* Client-Side Flash Messages */
+#client-flash-container {
+    position: fixed;
+    top: 80px; /* Below the main header */
+    right: 20px;
+    z-index: 2000;
+    width: 350px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.client-alert {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    color: var(--white);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    animation: slideInRight 0.4s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.client-alert.alert-success {
+    background: var(--success);
+}
+
+.client-alert.alert-danger {
+    background: var(--danger);
+}
+
+.client-alert .close-btn {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    opacity: 0.7;
+    transition: var(--transition);
+}
+
+.client-alert .close-btn:hover {
+    opacity: 1;
+}
+
+.avatar-cell {
+    width: 60px;
+    padding-right: 0;
+}
+
+.user-avatar-small {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.modal-body form {
+    display: flex;
+    flex-direction: column;
+}
+
+.avatar-form-group {
+    align-items: center;
+    text-align: center;
+}
+
+.avatar-upload {
+    position: relative;
+    max-width: 120px;
+    margin: 1rem auto;
+}
+
+.avatar-preview {
+    width: 120px;
+    height: 120px;
+    position: relative;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid var(--white);
+    box-shadow: var(--box-shadow);
+}
+
+.avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-edit {
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    z-index: 1;
+}
+
+.avatar-edit input {
+    display: none;
+}
+
+.avatar-edit label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    margin-bottom: 0;
+    border-radius: 50%;
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    font-weight: normal;
+    transition: var(--transition);
+}
+
+.avatar-edit label:hover {
+    background: var(--light-gray);
+    border-color: #ccc;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+</style>
+
+<script>
+    // ─── Global Scope for Modal Functions ─────────────────────────────────
+    // These functions are placed in the global scope so they can be called 
+    // directly from the onclick attributes in the HTML.
+    
+    let resetUserId = null;
+
+    function showResetModal(userId, userName) {
+        resetUserId = userId;
+        document.getElementById('resetUserName').textContent = userName;
+        const resetModal = document.getElementById('resetModal');
+        if (resetModal) {
+            resetModal.style.display = 'flex';
+        }
+    }
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+        }
+        // Reset IDs when any modal is closed
+        resetUserId = null;
+    }
+
+    function confirmReset() {
+        if (!resetUserId) return;
+        
+        const resetButton = document.getElementById('resetModal').querySelector('.btn-warning');
+        resetButton.disabled = true;
+        resetButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resetting...';
+
+        fetch(`/user_promo/reset_password/${resetUserId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showFlashMessage('success', data.message);
+            } else {
+                showFlashMessage('danger', data.error);
+            }
+        })
+        .catch(() => showFlashMessage('danger', 'An unexpected network error occurred.'))
+        .finally(() => {
+            closeModal('resetModal');
+            resetButton.disabled = false;
+            resetButton.innerHTML = 'Reset Password';
+        });
+    }
+
+    // Helper function to show flash messages (can be global too)
+    function showFlashMessage(type, message) {
+        const container = document.getElementById('client-flash-container');
+        if (!container) return;
+        
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `client-alert alert-${type}`;
+        alertDiv.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i>
+            <span>${message}</span>
+            <button class="close-btn">&times;</button>
+        `;
+        
+        alertDiv.querySelector('.close-btn').onclick = () => alertDiv.remove();
+        
+        container.prepend(alertDiv);
+        
+        setTimeout(() => {
+            if (alertDiv) alertDiv.remove();
+        }, 5000);
+    }
+
+    // ─── DOM Ready Listeners ────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function() {
+        // Elements
+        const addUserBtn = document.querySelector('.btn-add-user');
+        const editUserModal = document.getElementById('edit-user-modal');
+        const addUserModal = document.getElementById('add-user-modal');
+        const deleteModal = document.getElementById('deleteModal');
+        const tableBody = document.querySelector('.user-table tbody');
+        let editUserId = null; // To hold the ID of the user being edited
+
+        // Password toggle functionality
+        const togglePassword = document.querySelector('.toggle-password');
+        if (togglePassword) {
+            togglePassword.addEventListener('click', function() {
+                const passwordInput = document.getElementById('new-password');
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                this.innerHTML = type === 'password' ? '<i class="fas fa-eye"></i>' : '<i class="fas fa-eye-slash"></i>';
+            });
+        }
+
+        // --- Modal Opening Logic ---
+        addUserBtn.addEventListener('click', () => {
+            document.getElementById('add-user-form').reset();
+            document.getElementById('add-avatar-preview').src = "{{ url_for('serve_profile_image', filename='default.png') }}";
+            addUserModal.style.display = 'flex';
+            document.getElementById('new-username').focus();
+        });
+
+        // Event Delegation for Edit and Delete buttons
+        tableBody.addEventListener('click', function(e) {
+            const editBtn = e.target.closest('.btn-edit');
+            const deleteBtn = e.target.closest('.btn-delete');
+            
+            if (editBtn) {
+                const row = editBtn.closest('tr');
+                editUserId = row.dataset.userId; // Set the global editUserId
+                
+                const username = row.querySelector('.username-cell').innerText.trim();
+                const roleBadge = row.querySelector('.role-badge');
+                const role = roleBadge ? roleBadge.className.split('role-')[1].split(' ')[0] : 'editor';
+                const avatarSrc = row.querySelector('.user-avatar-small').src;
+
+                document.getElementById('edit-user-id').value = editUserId;
+                document.getElementById('edit-username').value = username;
+                document.getElementById('edit-role').value = role;
+                document.getElementById('edit-avatar-preview').src = avatarSrc;
+                document.getElementById('edit-avatar-upload').value = ''; // Clear file input
+                
+                editUserModal.style.display = 'flex';
+            }
+            
+            if (deleteBtn) {
+                const row = deleteBtn.closest('tr');
+                const username = row.querySelector('.username-cell').textContent.trim();
+                
+                document.getElementById('delete-username').textContent = username;
+                deleteModal.dataset.userId = row.dataset.userId;
+                deleteModal.style.display = 'flex';
+            }
+        });
+
+        // --- Modal Closing Logic ---
+        document.querySelectorAll('.modal-close, .modal-cancel').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.closest('.modal').style.display = 'none';
+            });
+        });
+
+        window.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal')) {
+                e.target.style.display = 'none';
+            }
+        });
+
+        // --- Form Submission Handlers ---
+        
+        // Save User (Edit)
+        document.getElementById('save-user-btn').addEventListener('click', function() {
+            if (!editUserId) return;
+            const formData = new FormData(document.getElementById('edit-user-form'));
+            
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            fetch(`/user_promo/update_user/${editUserId}`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const row = document.querySelector(`tr[data-user-id='${editUserId}']`);
+                    if (row) {
+                        row.querySelector('.username-cell').innerText = data.userData.username;
+                        const roleBadge = row.querySelector('.role-badge');
+                        roleBadge.className = `role-badge role-${data.userData.role}`;
+                        roleBadge.innerText = data.userData.roleDisplay;
+                        if(data.userData.avatar_url) {
+                            row.querySelector('.user-avatar-small').src = data.userData.avatar_url;
+                        }
+                    }
+                    editUserModal.style.display = 'none';
+                    showFlashMessage('success', data.message || 'User updated successfully.');
+                } else {
+                    showFlashMessage('danger', data.error || 'Failed to update user.');
+                }
+            })
+            .catch(error => {
+                showFlashMessage('danger', 'An unexpected network error occurred.');
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.innerHTML = 'Save Changes';
+            });
+        });
+
+        // Create New User
+        document.getElementById('create-user-btn').addEventListener('click', function() {
+            const form = document.getElementById('add-user-form');
+            const formData = new FormData(form);
+
+            if (!formData.get('username') || !formData.get('password')) {
+                showFlashMessage('danger', 'Username and Password cannot be empty.');
+                return;
+            }
+
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+
+            fetch('/user_promo/add_user', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // This will reload the page to show the new user.
+                    // A more advanced implementation could dynamically add the row.
+                    window.location.reload(); 
+                } else {
+                    showFlashMessage('danger', data.error || 'Failed to create user');
+                }
+            })
+            .catch(error => {
+                showFlashMessage('danger', 'Network error occurred');
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.innerHTML = 'Create User';
+            });
+        });
+
+        // Delete User (Confirm)
+        document.getElementById('confirm-delete-btn').addEventListener('click', function() {
+            const userId = deleteModal.dataset.userId;
+            
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+            
+            fetch(`/user_promo/delete_user/${userId}`, {method: 'POST'})
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    deleteModal.style.display = 'none';
+                    showFlashMessage('success', data.message || 'User has been deleted.');
+                    const row = tableBody.querySelector(`tr[data-user-id="${userId}"]`);
+                    if (row) row.remove();
+                } else {
+                    showFlashMessage('danger', data.error || 'Failed to delete user');
+                    deleteModal.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                showFlashMessage('danger', 'Network error occurred');
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.innerHTML = 'Delete User';
+            });
+        });
+
+        // --- Utility Functions ---
+        function setupAvatarPreview(inputId, previewId) {
+            const input = document.getElementById(inputId);
+            const preview = document.getElementById(previewId);
+            if (!input || !preview) return;
+            input.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.src = e.target.result;
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        setupAvatarPreview('add-avatar-upload', 'add-avatar-preview');
+        setupAvatarPreview('edit-avatar-upload', 'edit-avatar-preview');
+    });
+</script>
+
+{% endblock %}

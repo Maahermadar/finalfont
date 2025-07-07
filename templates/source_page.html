@@ -1,0 +1,578 @@
+{% extends "dashboard_base.html" %}
+{% block dashboard_content %}
+<div class="sources-container">
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">
+                        {% if category == 'success' %}
+                            <i class="fas fa-check-circle flash-icon"></i>
+                        {% elif category == 'error' or category == 'danger' %}
+                             <i class="fas fa-times-circle flash-icon"></i>
+                        {% else %}
+                             <i class="fas fa-info-circle flash-icon"></i>
+                        {% endif %}
+                        <span>{{ message }}</span>
+                        <button class="flash-close">
+                            <svg viewBox="0 0 24 24" width="18" height="18">
+                                <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+                            </svg>
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="sources-header">
+        <div class="header-content">
+            <div class="header-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+            </div>
+            <div>
+                <h1>Source Materials Management</h1>
+                <p class="subtitle">Upload and manage all educational source materials</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Source Form -->
+    <div class="source-form-container">
+        <h3 class="form-title">Add New Source Material</h3>
+        <form method="POST" action="{{ url_for('source_page') }}" enctype="multipart/form-data" class="source-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <input type="text" name="subject" placeholder="Subject" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" name="chapter" placeholder="Chapter" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" name="episode" placeholder="Episode" required>
+                </div>
+                <div class="form-group">
+                    <select name="supervisor_id" required>
+                        <option value="" disabled selected>Supervisor</option>
+                        {% for supervisor in supervisors %}
+                            <option value="{{ supervisor.id }}">{{ supervisor.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group file-group">
+                    <div class="file-input-wrapper">
+                        <input type="file" id="ppt_file" name="ppt_file" accept=".ppt,.pptx" required>
+                        <label for="ppt_file" class="file-label">
+                            <svg viewBox="0 0 24 24" width="18" height="18">
+                                <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                            </svg>
+                            <span class="file-name">Choose PPT file</span>
+                        </label>
+                    </div>
+                </div>
+                <button type="submit" class="submit-btn">
+                    <svg viewBox="0 0 24 24" width="18" height="18">
+                        <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+                    </svg>
+                    Upload
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sources Table -->
+    <div class="sources-table-container">
+        <div class="table-header">
+            <div class="table-row">
+                <div class="table-cell">Subject</div>
+                <div class="table-cell">Chapter</div>
+                <div class="table-cell">Episode</div>
+                <div class="table-cell">Supervisor</div>
+                <div class="table-cell">File</div>
+            </div>
+        </div>
+        <div class="table-body">
+            {% for source in sources %}
+            <div class="table-row">
+                <div class="table-cell">{{ source.subject }}</div>
+                <div class="table-cell">{{ source.chapter }}</div>
+                <div class="table-cell">{{ source.episode }}</div>
+                <div class="table-cell">
+                    {% if source.supervisor %}
+                        {{ source.supervisor.name }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </div>
+                <div class="table-cell">
+                    {% if source.ppt_filename %}
+                        <a href="{{ url_for('download_ppt', filename=source.ppt_filename) }}" class="download-link">
+                            <svg viewBox="0 0 24 24" width="16" height="16">
+                                <path fill="currentColor" d="M5,20H19V18H5M19,9H15V3H9V9H5L12,16L19,9Z" />
+                            </svg>
+                            Download
+                        </a>
+                    {% else %}
+                        —
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="empty-table">
+                <svg viewBox="0 0 24 24" width="48" height="48">
+                    <path fill="currentColor" d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                </svg>
+                <p>No source materials found</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<style>
+:root {
+    --primary: #37b3ba;
+    --primary-light: #63c4c9;
+    --primary-dark: #2c8d92;
+    --lightest-gray: #f9fafb;
+    --light-gray: #e5e7eb;
+    --medium-gray: #6b7280;
+    --dark-gray: #374151;
+    --white: #ffffff;
+}
+
+.sources-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+}
+
+/* Header Styles */
+.sources-header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+    border-radius: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.header-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.2);
+    border-radius: 12px;
+}
+
+.header-icon svg {
+    width: 28px;
+    height: 28px;
+    stroke: white;
+}
+
+.sources-header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    color: white;
+}
+
+.sources-header .subtitle {
+    font-size: 0.875rem;
+    color: rgba(255,255,255,0.8);
+    margin-top: 0.25rem;
+}
+
+/* Form Styles */
+.source-form-container {
+    background: var(--white);
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.form-title {
+    font-size: 1.1rem;
+    color: var(--dark-gray);
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+.source-form {
+    width: 100%;
+}
+
+.form-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-end;
+}
+
+.form-group {
+    flex: 1;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--light-gray);
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(55, 179, 186, 0.1);
+}
+
+.file-group {
+    position: relative;
+}
+
+.file-input-wrapper {
+    position: relative;
+}
+
+.file-input-wrapper input[type="file"] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+.file-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: var(--lightest-gray);
+    border: 1px solid var(--light-gray);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.file-label:hover {
+    background: var(--light-gray);
+}
+
+.file-label svg {
+    color: var(--primary);
+}
+
+.file-name {
+    font-size: 0.9rem;
+    color: var(--medium-gray);
+}
+
+.submit-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.submit-btn:hover {
+    background: var(--primary-dark);
+}
+
+.submit-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* Table Styles */
+.sources-table-container {
+    background: var(--white);
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.table-header {
+    background: var(--lightest-gray);
+    border-bottom: 1px solid var(--light-gray);
+}
+
+.table-header .table-row {
+    display: flex;
+    padding: 1rem;
+    font-weight: 600;
+    color: var(--medium-gray);
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+}
+
+.table-body {
+    min-height: 200px;
+}
+
+.table-row {
+    display: flex;
+    padding: 1rem;
+    border-bottom: 1px solid var(--light-gray);
+    transition: all 0.2s;
+}
+
+.table-row:last-child {
+    border-bottom: none;
+}
+
+.table-row:hover {
+    background: var(--lightest-gray);
+}
+
+.table-cell {
+    flex: 1;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+}
+
+.download-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(55, 179, 186, 0.1);
+    color: var(--primary);
+    border-radius: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.download-link:hover {
+    background: rgba(55, 179, 186, 0.2);
+}
+
+.download-link svg {
+    width: 16px;
+    height: 16px;
+}
+
+.empty-table {
+    padding: 3rem;
+    text-align: center;
+    color: var(--medium-gray);
+}
+
+.empty-table svg {
+    margin-bottom: 1rem;
+    opacity: 0.7;
+}
+
+.empty-table p {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+    .form-row {
+        flex-wrap: wrap;
+    }
+    
+    .form-group {
+        min-width: calc(50% - 0.5rem);
+    }
+    
+    .file-group {
+        min-width: 100%;
+    }
+    
+    .submit-btn {
+        min-width: 100%;
+        justify-content: center;
+    }
+    
+    .table-header .table-row,
+    .table-row {
+        flex-wrap: wrap;
+    }
+    
+    .table-cell {
+        min-width: 50%;
+        flex: none;
+    }
+    
+    .table-cell:nth-child(1)::before {
+        content: "Subject: ";
+        font-weight: 600;
+        color: var(--medium-gray);
+    }
+    
+    .table-cell:nth-child(2)::before {
+        content: "Chapter: ";
+        font-weight: 600;
+        color: var(--medium-gray);
+    }
+    
+    .table-cell:nth-child(3)::before {
+        content: "Episode: ";
+        font-weight: 600;
+        color: var(--medium-gray);
+    }
+    
+    .table-cell:nth-child(4)::before {
+        content: "Supervisor: ";
+        font-weight: 600;
+        color: var(--medium-gray);
+    }
+    
+    .table-cell:nth-child(5)::before {
+        content: "File: ";
+        font-weight: 600;
+        color: var(--medium-gray);
+    }
+}
+
+@media (max-width: 480px) {
+    .form-group {
+        min-width: 100%;
+    }
+    
+    .table-cell {
+        min-width: 100%;
+    }
+    
+    .sources-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .header-content {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+
+/* Flash Message Styles */
+.flash-messages {
+    padding: 0 1.5rem 1rem;
+}
+
+.flash-message {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    gap: 0.75rem;
+}
+
+.flash-message.success {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.flash-message.success .flash-icon {
+    color: var(--success);
+}
+
+.flash-message.error,
+.flash-message.danger {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--danger);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.flash-message.danger .flash-icon,
+.flash-message.error .flash-icon {
+    color: var(--danger);
+}
+
+.flash-message.info {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: var(--info);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.flash-message.info .flash-icon {
+    color: var(--info);
+}
+
+.flash-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.flash-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    opacity: 0.7;
+    padding: 0;
+}
+
+.flash-close:hover {
+    opacity: 1;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // File input display
+    const fileInput = document.querySelector('.file-group input[type="file"]');
+    const fileName = document.querySelector('.file-name');
+    
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                fileName.textContent = this.files[0].name;
+            } else {
+                fileName.textContent = 'Choose PPT file';
+            }
+        });
+    }
+    
+    // Close flash messages
+    document.querySelectorAll('.flash-close').forEach(button => {
+        button.addEventListener('click', function() {
+            this.closest('.flash-message').style.opacity = '0';
+            setTimeout(() => this.closest('.flash-message').remove(), 300);
+        });
+    });
+});
+</script>
+{% endblock %}
